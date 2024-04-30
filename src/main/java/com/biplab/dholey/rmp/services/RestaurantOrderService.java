@@ -6,9 +6,10 @@ import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerCheckO
 import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerFetchAllOrdersByTableResponse;
 import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.OrderItem;
+import com.biplab.dholey.rmp.models.db.TableBookedItem;
+import com.biplab.dholey.rmp.models.db.enums.BookedTableStatusEnum;
 import com.biplab.dholey.rmp.models.db.enums.OrderItemStatusEnum;
 import com.biplab.dholey.rmp.repositories.OrderItemRepository;
-import com.fasterxml.jackson.databind.ser.Serializers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,9 @@ public class RestaurantOrderService {
 
     @Autowired
     private FoodMenuService foodMenuService;
+
+    @Autowired
+    private RestaurantTableService restaurantTableService;
 
     private static final Long MAX_ORDER_QUEUED_COUNT = 50L;
 
@@ -72,7 +76,22 @@ public class RestaurantOrderService {
                 parentResponse.setError("Can't take more than "+ MAX_ORDER_PER_REQUEST+" orders.");
                 return parentResponse;
             }
+            Long tableId = orderRequest.getTableId();
+            TableBookedItem tableBookedItem = restaurantTableService.getTableBookedItemByTableId(tableId);
+            if (tableBookedItem == null){
+                parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
+                parentResponse.setError("TableBookItem not  found for tableId: "+tableId);
+                return parentResponse;
+            }
+            if(!List.of(BookedTableStatusEnum.BOOKED,BookedTableStatusEnum.ORDER_PLACED,BookedTableStatusEnum.ORDERS_SERVED).contains(tableBookedItem.getStatus())){
+                parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
+                parentResponse.setError("Can't table anymore orders for tableId: "+tableId);
+                return parentResponse;
+            }
+
+            List<Long> orderIds = new ArrayList<>();
             for(RestaurantOrderControllerCreateOrderRequest.Order order :orderRequest.getOrderList()){
+
                 FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(order.getFoodMenuItemId());
                 if(foodMenuItem == null){
                     parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
@@ -82,10 +101,21 @@ public class RestaurantOrderService {
                 OrderItem orderItem =  new OrderItem();
                 orderItem.setFoodMenuItemId(order.getFoodMenuItemId());
                 orderItem.setQuantity(order.getQuantity());
-                orderItem.setTableItemId(order.getTableId());
+                orderItem.setTableItemId(tableId);
                 orderItem.setStatus(OrderItemStatusEnum.QUEUED);
                 orderItemRepository.save(orderItem);
+                orderIds.add(orderItem.getId());
             }
+            Boolean updatedStatus = restaurantTableService.updateTableBookedItemStatusByTableId(tableId,BookedTableStatusEnum.ORDER_PLACED);
+            if(!updatedStatus){
+                throw new RuntimeException("Status updated failed for tableId");
+            }
+            Boolean updatedOrderIds = restaurantTableService.updateOrderIdsInTabledBookedItem(tableId,orderIds);
+            if(!updatedOrderIds){
+                throw new RuntimeException("OrderIds update failed for tableId");
+            }
+
+
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);
             parentResponse.setStatusCode(HttpStatus.OK.value());
@@ -133,7 +163,9 @@ public class RestaurantOrderService {
                 parentResponse.setError("Order can't be deleted as Order not in QUEUED state anymore.");
                 return parentResponse;
             }
-            orderItemRepository.deleteById(orderId);
+            OrderItem orderItem =  orderItemOpt.get();
+            orderItem.setStatus(OrderItemStatusEnum.DELETED);
+            orderItemRepository.save(orderItem);
             parentResponse.setStatusCode(HttpStatus.OK.value());
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);

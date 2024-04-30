@@ -42,8 +42,14 @@ public class RestaurantTableController {
         return ResponseEntity.ok().body(restaurantTableService.bookTable(tableNumber));
     }
 
+    @PutMapping("/book-table-by-occupancy")
+    public ResponseEntity<BaseDBOperationsResponse> bookTableByOccupancy(@RequestParam(value = "occupancy") Long occupancy) {
+        return ResponseEntity.ok().body(restaurantTableService.bookTableByOccupancy(occupancy));
+    }
+
+
     @PutMapping("/un-book-table")
-    public ResponseEntity<BaseDBOperationsResponse> unBookTable(@RequestParam(value = "tableNumber") Long tableNumber) {
-        return ResponseEntity.ok().body(restaurantTableService.unBookTable(tableNumber));
+    public ResponseEntity<BaseDBOperationsResponse> unBookTable(@RequestParam(value = "tableId") Long  tableId) {
+        return ResponseEntity.ok().body(restaurantTableService.unBookTable(tableId));
     }
 }

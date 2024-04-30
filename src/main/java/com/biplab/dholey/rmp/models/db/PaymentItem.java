@@ -1,9 +1,7 @@
 package com.biplab.dholey.rmp.models.db;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.biplab.dholey.rmp.models.db.enums.PaymentStatusEnum;
+import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.List;
@@ -15,6 +13,9 @@ public class PaymentItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String status;
+
+    @Enumerated(EnumType.STRING)
+    private PaymentStatusEnum status;
+
     private Long billItemId;
 }

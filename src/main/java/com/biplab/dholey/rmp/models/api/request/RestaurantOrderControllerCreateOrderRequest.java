@@ -7,6 +7,9 @@ import java.util.List;
 
 @Data
 public class RestaurantOrderControllerCreateOrderRequest {
+    @JsonProperty("tableId")
+    private Long tableId;
+
     @JsonProperty("orders")
     private List<Order> orderList;
 
@@ -16,7 +19,5 @@ public class RestaurantOrderControllerCreateOrderRequest {
         private Long foodMenuItemId;
         @JsonProperty("itemQuantity")
         private Long quantity;
-        @JsonProperty("tableId")
-        private Long tableId;
     }
 }

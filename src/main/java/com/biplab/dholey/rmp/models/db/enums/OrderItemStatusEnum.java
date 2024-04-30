@@ -9,5 +9,6 @@ public enum OrderItemStatusEnum {
     PAYMENT_INITIATED,
     PAYMENT_SUCCESS,
     PAYMENT_FAILED,
-    COMPLETED
+    COMPLETED,
+    DELETED
 }

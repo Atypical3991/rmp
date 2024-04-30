@@ -32,7 +32,7 @@ public class RestaurantOrderController {
         return ResponseEntity.ok().body(restaurantOrderService.deleteOrder(orderId));
     }
 
-    @GetMapping("fetch-active-orders-by-table-id")
+    @GetMapping("/fetch-active-orders-by-table-id")
     public ResponseEntity<RestaurantOrderControllerFetchAllOrdersByTableResponse> fetchAllActiveOrdersByTableId(@RequestParam(value = "tableId") Long tableId) {
         return ResponseEntity.ok().body(restaurantOrderService.fetchAllActiveOrdersByTableId(tableId));
     }

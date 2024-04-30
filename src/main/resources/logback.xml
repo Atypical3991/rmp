@@ -1,4 +1,5 @@
 <configuration>
+
     <property name="LOG_ROOT" value="${log.root.location}" />
     <property name="LOG_FILE_NAME" value="${log.root.file}" />
 
