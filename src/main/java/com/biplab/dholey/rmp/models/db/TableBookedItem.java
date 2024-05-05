@@ -18,8 +18,6 @@ public class TableBookedItem {
 
     private List<Long> orderIds;
 
-    private Long billId;
-
     @Enumerated(EnumType.STRING)
     private BookedTableStatusEnum status;
 
