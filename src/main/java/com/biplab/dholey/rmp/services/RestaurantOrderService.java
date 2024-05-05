@@ -33,8 +33,15 @@ public class RestaurantOrderService {
     @Autowired
     private RestaurantTableService restaurantTableService;
 
+    @Autowired
+    private RestaurantTableBookService restaurantTableBookService;
+
     public List<OrderItem> fetchAllOrdersByOrderIds(List<Long> orderIds) {
         return orderItemRepository.findAllByIdIn(orderIds);
+    }
+
+    public List<OrderItem> fetchAllUnBilledOrders(List<Long> orderItemIds) {
+        return orderItemRepository.findAllByIdInAndBillGenerated(orderItemIds, false);
     }
 
     public List<OrderItem> fetchAllInProgressAndQueuedOrders() {
@@ -88,6 +95,21 @@ public class RestaurantOrderService {
         return (PrepareFoodTaskQueueModel) prepareFoodTaskQueue.popTask();
     }
 
+    public boolean updateBillGenerationStatus(Long orderId) {
+        try {
+            Optional<OrderItem> orderItemOpt = orderItemRepository.findById(orderId);
+            if (orderItemOpt.isEmpty()) {
+                return false;
+            }
+            orderItemOpt.get().setBillGenerated(true);
+            orderItemRepository.save(orderItemOpt.get());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+
+    }
+
     @Transactional
     public BaseDBOperationsResponse createOrder(RestaurantOrderControllerCreateOrderRequest orderRequest) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
@@ -106,7 +128,7 @@ public class RestaurantOrderService {
                 return parentResponse;
             }
             Long tableId = orderRequest.getTableId();
-            TableBookedItem tableBookedItem = restaurantTableService.getTableBookedItemByTableId(tableId);
+            TableBookedItem tableBookedItem = restaurantTableBookService.getTableBookedItemByTableId(tableId);
             if (tableBookedItem == null) {
                 parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
                 parentResponse.setError("TableBookItem not  found for tableId: " + tableId);
@@ -135,16 +157,14 @@ public class RestaurantOrderService {
                 orderItemRepository.save(orderItem);
                 orderIds.add(orderItem.getId());
 
+
                 PrepareFoodTaskQueueModel prepareFoodTaskQueueModel = new PrepareFoodTaskQueueModel();
                 prepareFoodTaskQueueModel.setOrderId(orderItem.getId());
                 prepareFoodTaskQueueModel.setTableId(orderItem.getTableItemId());
                 prepareFoodTaskQueue.pushTask(prepareFoodTaskQueueModel);
             }
-//            Boolean updatedStatus = restaurantTableService.updateTableBookedItemStatusByTableId(tableId, BookedTableStatusEnum.ORDER_PLACED);
-//            if (!updatedStatus) {
-//                throw new RuntimeException("Status updated failed for tableId");
-//            }
-            Boolean updatedOrderIds = restaurantTableService.updateOrderIdsInTabledBookedItem(tableId, orderIds);
+            restaurantTableBookService.updateLastOrderPlacedAt(tableId);
+            Boolean updatedOrderIds = restaurantTableBookService.updateOrderIdsInTabledBookedItem(tableId, orderIds);
             if (!updatedOrderIds) {
                 throw new RuntimeException("OrderIds update failed for tableId");
             }
@@ -231,4 +251,6 @@ public class RestaurantOrderService {
             return parentResponse;
         }
     }
+
+
 }

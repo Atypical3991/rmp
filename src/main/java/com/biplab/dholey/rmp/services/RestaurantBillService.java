@@ -9,7 +9,9 @@ import com.biplab.dholey.rmp.models.db.BillItem;
 import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.OrderItem;
 import com.biplab.dholey.rmp.models.db.enums.BillItemStatusEnum;
+import com.biplab.dholey.rmp.models.util.GenerateBillTaskQueueModel;
 import com.biplab.dholey.rmp.repositories.BillItemRepository;
+import com.biplab.dholey.rmp.util.TaskQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,8 @@ import java.util.Optional;
 @Service
 public class RestaurantBillService {
 
+    private final TaskQueue generateBillTaskQueue = new TaskQueue("restaurant_generate_bill_task_queue");
+
     @Autowired
     private RestaurantOrderService restaurantOrderService;
 
@@ -30,6 +34,9 @@ public class RestaurantBillService {
 
     @Autowired
     private BillItemRepository billItemRepository;
+
+    @Autowired
+    private RestaurantTableBookService restaurantTableBookService;
 
     public BillItem getBillGeneratedBillItemById(Long billId) {
         return billItemRepository.findByIdAndStatus(billId, BillItemStatusEnum.BILL_GENERATED);
@@ -60,38 +67,48 @@ public class RestaurantBillService {
         return true;
     }
 
+    @Transactional
+    public void processGenerateBillTask(GenerateBillTaskQueueModel generateBillTaskQueueModel) {
+        try {
+            List<Long> orderItemsIds = generateBillTaskQueueModel.getOrderItemIds();
+            List<OrderItem> orderItemsList = restaurantOrderService.fetchAllOrdersByOrderIds(orderItemsIds);
+            BillItem billItem = new BillItem();
+            for (OrderItem orderItem : orderItemsList) {
+                FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
+                if (foodMenuItem == null) {
+                    continue;
+                }
+                billItem.setPayable(billItem.getPayable() + (foodMenuItem.getPrice() * orderItem.getQuantity()));
+                billItem.getOrderItemIds().add(orderItem.getId());
+                orderItem.setBillGenerated(true);
+                if (!restaurantOrderService.updateBillGenerationStatus(orderItem.getId())) {
+                    throw new RuntimeException("Bill generation status hasn't been updated!! for tableId: " + generateBillTaskQueueModel.getTableId() + " and orderIds : " + String.join(",", generateBillTaskQueueModel.getOrderItemIds().stream().map(Object::toString).toArray(String[]::new)));
+                }
+            }
+            billItem.setStatus(BillItemStatusEnum.BILL_GENERATED);
+            billItem.setTableItemId(generateBillTaskQueueModel.getTableId());
+            billItemRepository.save(billItem);
+            restaurantTableBookService.updateBillGenerateAt(generateBillTaskQueueModel.getTableId());
+        } catch (Exception e) {
+        }
+
+
+    }
 
     @Transactional
     public BaseDBOperationsResponse generateBill(RestaurantBillControllerGenerateBillRequest generateBillRequest) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
             List<Long> orderIds = generateBillRequest.getOrderIds();
-            if (billItemRepository.countByOrderItemIdsIn(orderIds) > 0) {
-                parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
-                parentResponse.setError("Bill already generated");
-                return parentResponse;
-            }
-            List<OrderItem> orderItems = restaurantOrderService.fetchAllOrdersByOrderIds(orderIds);
-            if (orderItems.isEmpty()) {
+            List<OrderItem> ordersItemList = restaurantOrderService.fetchAllUnBilledOrders(orderIds);
+            if (ordersItemList.isEmpty()) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("No orders found ton be processed");
+                parentResponse.setError("No UnBilled Orders found!!");
                 return parentResponse;
             }
-            BillItem billItem = new BillItem();
-            for (OrderItem orderItem : orderItems) {
-                FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
-                if (foodMenuItem == null) {
-                    parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
-                    parentResponse.setError("No foodMenuItem found for foodMenuItem: " + orderItem.getFoodMenuItemId());
-                    return parentResponse;
-                }
-                billItem.setPayable(billItem.getPayable() + (foodMenuItem.getPrice() * orderItem.getQuantity()));
-                billItem.getOrderItemIds().add(orderItem.getId());
-            }
-            billItem.setStatus(BillItemStatusEnum.BILL_GENERATED);
-            billItem.setTableItemId(generateBillRequest.getTableItemId());
-            billItemRepository.save(billItem);
+
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
+            parentResponse.setMessage("Bill generation has been queued!! you'll be notified once its been processed.");
             parentResponse.getData().setSuccess(true);
             parentResponse.setStatusCode(HttpStatus.OK.value());
             return parentResponse;
@@ -127,8 +144,7 @@ public class RestaurantBillService {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
             BillItemStatusEnum status = BillItemStatusEnum.valueOf(updateBillRequest.getStatus());
-            if (!List.of(BillItemStatusEnum.BILL_PROCESSED, BillItemStatusEnum.PAYMENT_INITIATED,
-                    BillItemStatusEnum.PAYMENT_FAILED, BillItemStatusEnum.PAYMENT_SUCCESS).contains(status)) {
+            if (!List.of(BillItemStatusEnum.BILL_PROCESSED, BillItemStatusEnum.PAYMENT_INITIATED, BillItemStatusEnum.PAYMENT_FAILED, BillItemStatusEnum.PAYMENT_SUCCESS).contains(status)) {
                 parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
                 parentResponse.setError("Not an acceptable status value.");
                 return parentResponse;
@@ -173,5 +189,9 @@ public class RestaurantBillService {
             return parentResponse;
         }
 
+    }
+
+    public GenerateBillTaskQueueModel popGenerateBillTask() {
+        return (GenerateBillTaskQueueModel) generateBillTaskQueue.popTask();
     }
 }

@@ -12,8 +12,11 @@ public class TableItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private Long tableNumber;
+
     private Long occupancy;
+
     @Enumerated(EnumType.STRING)
     private TableItemStatusEnum status;
 

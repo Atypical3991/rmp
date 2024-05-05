@@ -4,12 +4,9 @@ import com.biplab.dholey.rmp.models.api.request.RestaurantTableControllerAddTabl
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchAllAvailableTablesResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchTableStatusResponse;
-import com.biplab.dholey.rmp.models.db.TableBookedItem;
 import com.biplab.dholey.rmp.models.db.TableItem;
-import com.biplab.dholey.rmp.models.db.enums.BookedTableStatusEnum;
 import com.biplab.dholey.rmp.models.db.enums.TableItemStatusEnum;
 import com.biplab.dholey.rmp.models.util.TableCleanRequestTaskQueueModel;
-import com.biplab.dholey.rmp.repositories.TableBookRepository;
 import com.biplab.dholey.rmp.repositories.TableItemRepository;
 import com.biplab.dholey.rmp.transformers.RestaurantTableControllerAddTableRequestToTableItemTransformer;
 import com.biplab.dholey.rmp.transformers.TableItemToRestaurantTableControllerFetchTableStatusResponseTransformer;
@@ -20,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,7 +30,7 @@ public class RestaurantTableService {
     private TableItemRepository tableItemRepository;
 
     @Autowired
-    private TableBookRepository tableBookRepository;
+    private RestaurantTableBookService restaurantTableBookService;
 
 
     @Autowired
@@ -43,30 +39,6 @@ public class RestaurantTableService {
 
     private TableItemToRestaurantTableControllerFetchTableStatusResponseTransformer tableItemToRestaurantTableControllerFetchTableStatusResponseTransformer;
 
-
-    public TableBookedItem getTableBookedItemByTableId(Long tableId) {
-        return tableBookRepository.findByTableId(tableId);
-    }
-
-    public Boolean updateOrderIdsInTabledBookedItem(Long tableId, List<Long> orderIds) {
-        TableBookedItem tableBookedItem = tableBookRepository.findByTableId(tableId);
-        if (tableBookedItem == null) {
-            return false;
-        }
-        tableBookedItem.getOrderIds().addAll(orderIds);
-        tableBookRepository.save(tableBookedItem);
-        return true;
-    }
-
-    public Boolean updateTableBookedItemStatusByTableId(Long tableId, BookedTableStatusEnum status) {
-        TableBookedItem tableBookedItem = tableBookRepository.findByTableId(tableId);
-        if (tableBookedItem == null) {
-            return false;
-        }
-        tableBookedItem.setStatus(status);
-        tableBookRepository.save(tableBookedItem);
-        return true;
-    }
 
     public BaseDBOperationsResponse addTable(RestaurantTableControllerAddTableRequest addTableRequest) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
@@ -84,7 +56,6 @@ public class RestaurantTableService {
         }
     }
 
-
     @Transactional(isolation = SERIALIZABLE)
     public BaseDBOperationsResponse bookTable(Long tableNumber) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
@@ -97,13 +68,9 @@ public class RestaurantTableService {
             }
             tableItem.setStatus(TableItemStatusEnum.BOOKED);
             tableItemRepository.save(tableItem);
-
-            TableBookedItem tableBookedItem = new TableBookedItem();
-            tableBookedItem.setTableId(tableItem.getId());
-            tableBookedItem.setTableBookedAt(LocalDateTime.now());
-            tableBookedItem.setStatus(BookedTableStatusEnum.BOOKED);
-            tableBookRepository.save(tableBookedItem);
-
+            if (!restaurantTableBookService.createBookTableItem(tableItem.getId())) {
+                throw new RuntimeException("Table book item creation failed!! tableId: " + tableItem.getId());
+            }
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);
             parentResponse.setStatusCode(HttpStatus.OK.value());
@@ -128,11 +95,9 @@ public class RestaurantTableService {
             tableItem.setStatus(TableItemStatusEnum.BOOKED);
             tableItemRepository.save(tableItem);
 
-            TableBookedItem tableBookedItem = new TableBookedItem();
-            tableBookedItem.setTableId(tableItem.getId());
-            tableBookedItem.setTableBookedAt(LocalDateTime.now());
-            tableBookedItem.setStatus(BookedTableStatusEnum.BOOKED);
-            tableBookRepository.save(tableBookedItem);
+            if (!restaurantTableBookService.createBookTableItem(tableItem.getId())) {
+                throw new RuntimeException("Table book item creation failed!! tableId: " + tableItem.getId());
+            }
 
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);
@@ -165,14 +130,9 @@ public class RestaurantTableService {
             tableItem.setStatus(TableItemStatusEnum.AVAILABLE);
             tableItemRepository.save(tableItem);
 
-            TableBookedItem tableBookedItem = tableBookRepository.findByTableId(tableItem.getId());
-            if (tableBookedItem.getStatus() != BookedTableStatusEnum.READY_TO_BE_UN_BOOKED) {
-                throw new RuntimeException("Table can't be un-booked, as table with tableId:" + tableItem.getId() +
-                        " not in " + BookedTableStatusEnum.READY_TO_BE_UN_BOOKED.name() + " state.");
+            if (!restaurantTableBookService.updateUnBookStatus(tableId)) {
+                throw new RuntimeException("Updating unBook status in table book item failed!! tableId: " + tableId);
             }
-            tableBookedItem.setTableUnBookedAt(LocalDateTime.now());
-            tableBookedItem.setStatus(BookedTableStatusEnum.UN_BOOKED);
-            tableBookRepository.save(tableBookedItem);
 
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);
@@ -252,12 +212,6 @@ public class RestaurantTableService {
     public BaseDBOperationsResponse cleanTable(Long tableId) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
-            TableBookedItem tableBookedItem = tableBookRepository.findByTableId(tableId);
-            if (tableBookedItem == null) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("No table found for table id :" + tableId);
-                return parentResponse;
-            }
             TableCleanRequestTaskQueueModel tableCleanRequestTaskQueueModel = new TableCleanRequestTaskQueueModel();
             tableCleanRequestTaskQueueModel.setTableId(tableId);
             tableCleaningTaskQueue.pushTask(tableCleanRequestTaskQueueModel);

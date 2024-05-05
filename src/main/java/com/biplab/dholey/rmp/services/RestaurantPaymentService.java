@@ -4,7 +4,6 @@ import com.biplab.dholey.rmp.models.api.request.RestaurantPaymentControllerUpdat
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.db.BillItem;
 import com.biplab.dholey.rmp.models.db.enums.BillItemStatusEnum;
-import com.biplab.dholey.rmp.repositories.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,7 +17,7 @@ public class RestaurantPaymentService {
     private RestaurantBillService restaurantBillService;
 
     @Autowired
-    private OrderItemRepository orderItemRepository;
+    private RestaurantTableBookService restaurantTableBookService;
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public BaseDBOperationsResponse initiateOrderPayment(Long billId) {
@@ -60,6 +59,9 @@ public class RestaurantPaymentService {
             }
             String status = updatePaymentStatusRequest.getStatus();
             restaurantBillService.updatePaymentStatus(billId, BillItemStatusEnum.valueOf(status));
+            if (BillItemStatusEnum.valueOf(status) == BillItemStatusEnum.PAYMENT_SUCCESS) {
+                restaurantTableBookService.updatePaymentReceivedAt(billItem.getTableItemId());
+            }
             parentResponse.setStatusCode(HttpStatus.OK.value());
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);

@@ -10,9 +10,15 @@ public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private Long foodMenuItemId;
+
     private Long quantity;
+
     private Long tableItemId;
+
+    private Boolean billGenerated = false;
+
     @Enumerated(EnumType.STRING)
     private OrderItemStatusEnum status;
 }

@@ -12,7 +12,9 @@ public class BillItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     private Long id;
+
     private List<Long> orderItemIds;
 
     private Long tableItemId;
