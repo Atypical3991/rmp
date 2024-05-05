@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-public class BaseDBOperationsResponse  extends BaseResponse{
+public class BaseDBOperationsResponse extends BaseResponse {
 
     @JsonProperty("data")
     private BaseDBOperationsResponseResponseData data;

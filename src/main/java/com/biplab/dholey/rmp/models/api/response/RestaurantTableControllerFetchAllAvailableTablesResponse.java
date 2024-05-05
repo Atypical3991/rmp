@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class RestaurantTableControllerFetchAllAvailableTablesResponse  extends BaseResponse {
+public class RestaurantTableControllerFetchAllAvailableTablesResponse extends BaseResponse {
     @JsonProperty("data")
     private RestaurantTableControllerFetchAllAvailableTablesResponseResponseData data;
 
@@ -16,13 +16,13 @@ public class RestaurantTableControllerFetchAllAvailableTablesResponse  extends B
         private List<Table> tablesList;
 
         @Data
-        public static class Table{
+        public static class Table {
             @JsonProperty("tableNumber")
             private Long number;
             @JsonProperty("tableStatus")
             private String status;
             @JsonProperty("tableOccupancy")
-            private Long  occupancy;
+            private Long occupancy;
         }
     }
 

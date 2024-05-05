@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-public class RestaurantPaymentControllerCheckOrderBillPaymentStatusResponse  extends BaseResponse {
+public class RestaurantPaymentControllerCheckOrderBillPaymentStatusResponse extends BaseResponse {
 
     @JsonProperty("data")
     private RestaurantPaymentControllerCheckOrderBillPaymentStatusResponseResponseData data;

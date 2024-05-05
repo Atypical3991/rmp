@@ -2,10 +2,7 @@ package com.biplab.dholey.rmp.controllers;
 
 import com.biplab.dholey.rmp.models.api.request.RestaurantPaymentControllerUpdatePaymentStatusRequest;
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
-import com.biplab.dholey.rmp.models.api.response.RestaurantPaymentControllerCheckOrderBillPaymentStatusResponse;
-import com.biplab.dholey.rmp.repositories.OrderItemRepository;
 import com.biplab.dholey.rmp.services.RestaurantPaymentService;
-import com.fasterxml.jackson.databind.ser.Serializers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

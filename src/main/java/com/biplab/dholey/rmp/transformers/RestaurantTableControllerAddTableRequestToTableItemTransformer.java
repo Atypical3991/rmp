@@ -5,7 +5,7 @@ import com.biplab.dholey.rmp.models.db.TableItem;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RestaurantTableControllerAddTableRequestToTableItemTransformer implements Transformer<RestaurantTableControllerAddTableRequest,TableItem> {
+public class RestaurantTableControllerAddTableRequestToTableItemTransformer implements TransformerInterface<RestaurantTableControllerAddTableRequest, TableItem> {
 
     @Override
     public TableItem transform(RestaurantTableControllerAddTableRequest obj) {

@@ -12,7 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class FoodMenuService {
@@ -60,7 +62,7 @@ public class FoodMenuService {
             FoodMenuItem foodMenuItem = foodMenuItemRepository.findByRecipeItemId(recipeItemId);
             if (foodMenuItem != null) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("FoodMenuItem not found for recipeItemId: "+recipeItemId);
+                parentResponse.setError("FoodMenuItem not found for recipeItemId: " + recipeItemId);
                 return parentResponse;
             }
             FoodMenuItem newFoodMenuItem = new FoodMenuItem();
@@ -74,40 +76,40 @@ public class FoodMenuService {
         } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());
-            return  parentResponse;
+            return parentResponse;
         }
     }
 
     public BaseDBOperationsResponse removeFoodMenuItem(Long foodMenuItemId) {
-        BaseDBOperationsResponse parentResponse =  new BaseDBOperationsResponse();
+        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
             Optional<FoodMenuItem> foodMenuItemOpt = foodMenuItemRepository.findById(foodMenuItemId);
             if (foodMenuItemOpt.isEmpty()) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty foodMenuItemOpt received for foodMenuItemId: "+foodMenuItemId);
-                return  parentResponse;
+                parentResponse.setError("Empty foodMenuItemOpt received for foodMenuItemId: " + foodMenuItemId);
+                return parentResponse;
             }
             foodMenuItemRepository.deleteById(foodMenuItemId);
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             BaseDBOperationsResponse.BaseDBOperationsResponseResponseData response = parentResponse.getData();
             response.setSuccess(true);
-            return  parentResponse;
+            return parentResponse;
 
         } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());
-            return  parentResponse;
+            return parentResponse;
         }
     }
 
     public BaseDBOperationsResponse modifyFoodMenuItem(FoodMenuControllerModifyMenuItem modifyFoodMenuItemRequest) {
-        BaseDBOperationsResponse parentResponse =  new BaseDBOperationsResponse();
+        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
             Long foodMenuItemId = modifyFoodMenuItemRequest.getFoodMenuItemId();
             Optional<FoodMenuItem> foodMenuItemOpt = foodMenuItemRepository.findById(foodMenuItemId);
             if (foodMenuItemOpt.isEmpty()) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty foodMenuItemOpt received for foodMenuItemId: "+foodMenuItemId);
+                parentResponse.setError("Empty foodMenuItemOpt received for foodMenuItemId: " + foodMenuItemId);
                 return parentResponse;
             }
             FoodMenuItem foodMenuItem = foodMenuItemOpt.get();
@@ -116,9 +118,9 @@ public class FoodMenuService {
             }
             foodMenuItemRepository.save(foodMenuItem);
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-            BaseDBOperationsResponse.BaseDBOperationsResponseResponseData response =  parentResponse.getData();
+            BaseDBOperationsResponse.BaseDBOperationsResponseResponseData response = parentResponse.getData();
             response.setSuccess(true);
-            return  parentResponse;
+            return parentResponse;
         } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());

@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class TableItemToRestaurantTableControllerFetchTableStatusResponseTransformer implements Transformer<List<TableItem>, RestaurantTableControllerFetchAllAvailableTablesResponse> {
+public class TableItemToRestaurantTableControllerFetchTableStatusResponseTransformer implements TransformerInterface<List<TableItem>, RestaurantTableControllerFetchAllAvailableTablesResponse> {
     @Override
     public RestaurantTableControllerFetchAllAvailableTablesResponse transform(List<TableItem> source) {
         RestaurantTableControllerFetchAllAvailableTablesResponse response = new RestaurantTableControllerFetchAllAvailableTablesResponse();

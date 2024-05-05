@@ -5,7 +5,6 @@ import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerCheckOrderStatusResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerFetchAllOrdersByTableResponse;
 import com.biplab.dholey.rmp.services.RestaurantOrderService;
-import com.fasterxml.jackson.databind.ser.Serializers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +32,7 @@ public class RestaurantOrderController {
     }
 
     @GetMapping("/fetch-active-orders-by-table-id")
-    public ResponseEntity<RestaurantOrderControllerFetchAllOrdersByTableResponse> fetchAllActiveOrdersByTableId(@RequestParam(value = "tableId") Long tableId) {
-        return ResponseEntity.ok().body(restaurantOrderService.fetchAllActiveOrdersByTableId(tableId));
+    public ResponseEntity<RestaurantOrderControllerFetchAllOrdersByTableResponse> fetchAllOrdersByTableId(@RequestParam(value = "tableId") Long tableId) {
+        return ResponseEntity.ok().body(restaurantOrderService.fetchAllOrdersByTableId(tableId));
     }
 }

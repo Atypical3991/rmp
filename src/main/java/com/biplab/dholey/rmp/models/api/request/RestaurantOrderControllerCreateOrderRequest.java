@@ -14,7 +14,7 @@ public class RestaurantOrderControllerCreateOrderRequest {
     private List<Order> orderList;
 
     @Data
-    public static class Order{
+    public static class Order {
         @JsonProperty("itemId")
         private Long foodMenuItemId;
         @JsonProperty("itemQuantity")

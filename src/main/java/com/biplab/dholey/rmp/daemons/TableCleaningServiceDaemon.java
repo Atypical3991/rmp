@@ -1,8 +1,6 @@
 package com.biplab.dholey.rmp.daemons;
 
-
-import com.biplab.dholey.rmp.models.util.PrepareFoodTaskQueueModel;
-import com.biplab.dholey.rmp.services.KitchenCookService;
+import com.biplab.dholey.rmp.services.RestaurantTableService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,15 +9,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public class KitchenCookDaemon extends Thread {
+public class TableCleaningServiceDaemon extends Thread {
+
 
     private static final int MAX_NUMBER_OF_CHEF = 10;
-    @Autowired
-    private KitchenCookService kitchenCookService;
+    private final RestaurantTableService restaurantTableService;
 
     @Autowired
-    public KitchenCookDaemon(KitchenCookService kitchenCookService) {
-        this.kitchenCookService = kitchenCookService;
+    public TableCleaningServiceDaemon(RestaurantTableService restaurantTableService) {
+        this.restaurantTableService = restaurantTableService;
         setDaemon(true);
         start();
     }
@@ -29,11 +27,10 @@ public class KitchenCookDaemon extends Thread {
         ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_CHEF);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                PrepareFoodTaskQueueModel queuedOrder = kitchenCookService.fetchAllOrdersToBeProcessed();
-                executorService.submit(() -> kitchenCookService.processOrder(queuedOrder.getOrderId()));
-                Thread.sleep(1000); // Simulate some task
+                restaurantTableService.popCleaningTableTask();
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Restore interrupted status
+                Thread.currentThread().interrupt();
             }
         }
         try {
@@ -44,5 +41,4 @@ public class KitchenCookDaemon extends Thread {
             e.printStackTrace();
         }
     }
-
 }

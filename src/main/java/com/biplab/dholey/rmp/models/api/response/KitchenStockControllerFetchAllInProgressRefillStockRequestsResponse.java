@@ -17,7 +17,7 @@ public class KitchenStockControllerFetchAllInProgressRefillStockRequestsResponse
         private List<RefillStockRequest> refillStockRequests;
 
         @Data
-        public static class RefillStockRequest{
+        public static class RefillStockRequest {
             @JsonProperty("refillRequestId")
             private Long refillRequestId;
             @JsonProperty("status")

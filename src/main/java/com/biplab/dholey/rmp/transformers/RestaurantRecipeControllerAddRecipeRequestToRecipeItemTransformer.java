@@ -5,7 +5,7 @@ import com.biplab.dholey.rmp.models.db.RecipeItem;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RestaurantRecipeControllerAddRecipeRequestToRecipeItemTransformer implements Transformer<RestaurantRecipeControllerAddRecipeRequest, RecipeItem>{
+public class RestaurantRecipeControllerAddRecipeRequestToRecipeItemTransformer implements TransformerInterface<RestaurantRecipeControllerAddRecipeRequest, RecipeItem> {
     @Override
     public RecipeItem transform(RestaurantRecipeControllerAddRecipeRequest source) {
         RecipeItem recipeItem = new RecipeItem();

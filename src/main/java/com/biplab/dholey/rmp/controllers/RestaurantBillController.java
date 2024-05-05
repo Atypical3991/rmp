@@ -1,9 +1,7 @@
 package com.biplab.dholey.rmp.controllers;
 
 import com.biplab.dholey.rmp.models.api.request.RestaurantBillControllerGenerateBillRequest;
-import com.biplab.dholey.rmp.models.api.request.RestaurantBillControllerUpdateBillStatusRequest;
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
-import com.biplab.dholey.rmp.models.api.response.RestaurantBillControllerCreateAndProcessOrderBillResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantBillControllerFetchAllBillsByTableIdResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantBillControllerOrderBillProcessingStatusResponse;
 import com.biplab.dholey.rmp.services.RestaurantBillService;
@@ -26,11 +24,6 @@ public class RestaurantBillController {
     @GetMapping("/bill-status")
     public ResponseEntity<RestaurantBillControllerOrderBillProcessingStatusResponse> orderBillProcessingStatus(@RequestParam(value = "billId") Long billId) {
         return ResponseEntity.ok().body(restaurantBillService.fetchBillStatus(billId));
-    }
-
-    @PutMapping("/update-bill-status")
-    public  ResponseEntity<BaseDBOperationsResponse> updateBillStatus(@RequestBody RestaurantBillControllerUpdateBillStatusRequest updateBillStatusRequest) {
-        return ResponseEntity.ok().body(restaurantBillService.updateBillStatus(updateBillStatusRequest));
     }
 
     @GetMapping("/fetch-all-bills-by-table-id")

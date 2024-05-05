@@ -21,26 +21,26 @@ public class RestaurantPaymentService {
     private OrderItemRepository orderItemRepository;
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public BaseDBOperationsResponse initiateOrderPayment(Long billId){
-        BaseDBOperationsResponse  parentResponse =  new BaseDBOperationsResponse();
-        try{
+    public BaseDBOperationsResponse initiateOrderPayment(Long billId) {
+        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
+        try {
             BillItem billItem = restaurantBillService.getBillGeneratedBillItemById(billId);
-            if(billItem == null){
+            if (billItem == null) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("No billItem found for billId: "+billId);
+                parentResponse.setError("No billItem found for billId: " + billId);
                 return parentResponse;
             }
-            if(restaurantBillService.updatePaymentInitiatedBillItemStatus(billItem.getId())){
+            if (!restaurantBillService.updatePaymentInitiatedBillItemStatus(billItem.getId())) {
                 parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
                 parentResponse.setError("Something went wrong");
                 return parentResponse;
-            }else{
+            } else {
                 parentResponse.setStatusCode(HttpStatus.OK.value());
                 parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
                 parentResponse.getData().setSuccess(true);
                 return parentResponse;
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());
             return parentResponse;
@@ -48,22 +48,23 @@ public class RestaurantPaymentService {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public BaseDBOperationsResponse updatePaymentStatus(RestaurantPaymentControllerUpdatePaymentStatusRequest updatePaymentStatusRequest){
+    public BaseDBOperationsResponse updatePaymentStatus(RestaurantPaymentControllerUpdatePaymentStatusRequest updatePaymentStatusRequest) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
-        try{
+        try {
             Long billId = updatePaymentStatusRequest.getBillId();
             BillItem billItem = restaurantBillService.fetchPaymentInitiatedBillItemById(billId);
-            if (billItem ==  null){
+            if (billItem == null) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("No billItem found for billID: "+billId);
+                parentResponse.setError("No billItem found for billID: " + billId);
                 return parentResponse;
             }
             String status = updatePaymentStatusRequest.getStatus();
+            restaurantBillService.updatePaymentStatus(billId, BillItemStatusEnum.valueOf(status));
             parentResponse.setStatusCode(HttpStatus.OK.value());
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);
             return parentResponse;
-        }catch (Exception e){
+        } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());
             return parentResponse;

@@ -4,8 +4,6 @@ import com.biplab.dholey.rmp.models.db.enums.PaymentStatusEnum;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.List;
-
 @Entity
 @Data
 public class PaymentItem {

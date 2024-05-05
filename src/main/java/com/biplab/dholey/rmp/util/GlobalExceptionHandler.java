@@ -1,4 +1,4 @@
-package com.biplab.dholey.rmp.common;
+package com.biplab.dholey.rmp.util;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

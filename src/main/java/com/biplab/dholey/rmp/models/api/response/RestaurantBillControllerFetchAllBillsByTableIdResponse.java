@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class RestaurantBillControllerFetchAllBillsByTableIdResponse  extends BaseResponse {
+public class RestaurantBillControllerFetchAllBillsByTableIdResponse extends BaseResponse {
 
     @JsonProperty("data")
     private RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData data;
@@ -17,7 +17,7 @@ public class RestaurantBillControllerFetchAllBillsByTableIdResponse  extends Bas
         private List<Bill> bills;
 
         @Data
-        public static class Bill{
+        public static class Bill {
             @JsonProperty("billId")
             private Long billId;
             @JsonProperty("status")

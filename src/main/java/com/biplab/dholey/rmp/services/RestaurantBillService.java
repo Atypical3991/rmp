@@ -31,18 +31,18 @@ public class RestaurantBillService {
     @Autowired
     private BillItemRepository billItemRepository;
 
-    public BillItem getBillGeneratedBillItemById(Long billId){
+    public BillItem getBillGeneratedBillItemById(Long billId) {
         return billItemRepository.findByIdAndStatus(billId, BillItemStatusEnum.BILL_GENERATED);
     }
 
-    public BillItem fetchPaymentInitiatedBillItemById(Long billItemId){
-        return billItemRepository.findByIdAndStatus(billItemId,BillItemStatusEnum.PAYMENT_INITIATED);
+    public BillItem fetchPaymentInitiatedBillItemById(Long billItemId) {
+        return billItemRepository.findByIdAndStatus(billItemId, BillItemStatusEnum.PAYMENT_INITIATED);
     }
 
 
-    public Boolean updatePaymentInitiatedBillItemStatus(Long billId){
+    public Boolean updatePaymentInitiatedBillItemStatus(Long billId) {
         Optional<BillItem> billItemOpt = billItemRepository.findById(billId);
-        if(billItemOpt.isEmpty()){
+        if (billItemOpt.isEmpty()) {
             return false;
         }
         billItemOpt.get().setStatus(BillItemStatusEnum.PAYMENT_INITIATED);
@@ -50,9 +50,9 @@ public class RestaurantBillService {
         return true;
     }
 
-    public Boolean updatePaymentStatus(Long billId, BillItemStatusEnum status){
+    public Boolean updatePaymentStatus(Long billId, BillItemStatusEnum status) {
         Optional<BillItem> billItemOpt = billItemRepository.findById(billId);
-        if(billItemOpt.isEmpty()){
+        if (billItemOpt.isEmpty()) {
             return false;
         }
         billItemOpt.get().setStatus(status);
@@ -62,30 +62,30 @@ public class RestaurantBillService {
 
 
     @Transactional
-    public BaseDBOperationsResponse generateBill(RestaurantBillControllerGenerateBillRequest generateBillRequest){
+    public BaseDBOperationsResponse generateBill(RestaurantBillControllerGenerateBillRequest generateBillRequest) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
-        try{
+        try {
             List<Long> orderIds = generateBillRequest.getOrderIds();
-            if (billItemRepository.countByOrderItemIdsIn(orderIds) >0){
+            if (billItemRepository.countByOrderItemIdsIn(orderIds) > 0) {
                 parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
                 parentResponse.setError("Bill already generated");
                 return parentResponse;
             }
             List<OrderItem> orderItems = restaurantOrderService.fetchAllOrdersByOrderIds(orderIds);
-            if (orderItems.isEmpty()){
+            if (orderItems.isEmpty()) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
                 parentResponse.setError("No orders found ton be processed");
                 return parentResponse;
             }
             BillItem billItem = new BillItem();
-            for(OrderItem orderItem: orderItems){
+            for (OrderItem orderItem : orderItems) {
                 FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
-                if(foodMenuItem == null){
+                if (foodMenuItem == null) {
                     parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
-                    parentResponse.setError("No foodMenuItem found for foodMenuItem: "+orderItem.getFoodMenuItemId());
+                    parentResponse.setError("No foodMenuItem found for foodMenuItem: " + orderItem.getFoodMenuItemId());
                     return parentResponse;
                 }
-                billItem.setPayable(billItem.getPayable()+(foodMenuItem.getPrice()*orderItem.getQuantity()));
+                billItem.setPayable(billItem.getPayable() + (foodMenuItem.getPrice() * orderItem.getQuantity()));
                 billItem.getOrderItemIds().add(orderItem.getId());
             }
             billItem.setStatus(BillItemStatusEnum.BILL_GENERATED);
@@ -95,7 +95,7 @@ public class RestaurantBillService {
             parentResponse.getData().setSuccess(true);
             parentResponse.setStatusCode(HttpStatus.OK.value());
             return parentResponse;
-        }catch (Exception e){
+        } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());
             return parentResponse;
@@ -103,63 +103,63 @@ public class RestaurantBillService {
 
     }
 
-    public RestaurantBillControllerOrderBillProcessingStatusResponse fetchBillStatus(Long billId){
-        RestaurantBillControllerOrderBillProcessingStatusResponse parentResponse =  new RestaurantBillControllerOrderBillProcessingStatusResponse();
-        try{
+    public RestaurantBillControllerOrderBillProcessingStatusResponse fetchBillStatus(Long billId) {
+        RestaurantBillControllerOrderBillProcessingStatusResponse parentResponse = new RestaurantBillControllerOrderBillProcessingStatusResponse();
+        try {
             Optional<BillItem> billItemOpt = billItemRepository.findById(billId);
-            if(billItemOpt.isEmpty()){
+            if (billItemOpt.isEmpty()) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty billItemOpt returned for billId: "+billId);
+                parentResponse.setError("Empty billItemOpt returned for billId: " + billId);
                 return parentResponse;
             }
             parentResponse.setData(new RestaurantBillControllerOrderBillProcessingStatusResponse.RestaurantBillControllerOrderBillProcessingStatusResponseResponseData());
             parentResponse.getData().setStatus(billItemOpt.get().getStatus().name());
             parentResponse.setStatusCode(HttpStatus.OK.value());
             return parentResponse;
-        }catch (Exception e){
+        } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());
             return parentResponse;
         }
     }
 
-    public BaseDBOperationsResponse updateBillStatus(RestaurantBillControllerUpdateBillStatusRequest updateBillRequest){
+    public BaseDBOperationsResponse updateBillStatus(RestaurantBillControllerUpdateBillStatusRequest updateBillRequest) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
-        try{
+        try {
             BillItemStatusEnum status = BillItemStatusEnum.valueOf(updateBillRequest.getStatus());
-            if(!List.of(BillItemStatusEnum.BILL_PROCESSED,BillItemStatusEnum.PAYMENT_INITIATED,
-                    BillItemStatusEnum.PAYMENT_FAILED,BillItemStatusEnum.PAYMENT_SUCCESS).contains(status)){
+            if (!List.of(BillItemStatusEnum.BILL_PROCESSED, BillItemStatusEnum.PAYMENT_INITIATED,
+                    BillItemStatusEnum.PAYMENT_FAILED, BillItemStatusEnum.PAYMENT_SUCCESS).contains(status)) {
                 parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
                 parentResponse.setError("Not an acceptable status value.");
                 return parentResponse;
             }
             Optional<BillItem> billItemOpt = billItemRepository.findById(updateBillRequest.getBillId());
-            if(billItemOpt.isEmpty()){
+            if (billItemOpt.isEmpty()) {
                 parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty billItemOpt for billId: "+updateBillRequest.getBillId());
+                parentResponse.setError("Empty billItemOpt for billId: " + updateBillRequest.getBillId());
                 return parentResponse;
             }
-            BillItem billItem =  billItemOpt.get();
+            BillItem billItem = billItemOpt.get();
             billItem.setStatus(status);
             billItemRepository.save(billItem);
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);
             parentResponse.setStatusCode(HttpStatus.OK.value());
             return parentResponse;
-        }catch (Exception e){
+        } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());
             return parentResponse;
         }
     }
 
-    public RestaurantBillControllerFetchAllBillsByTableIdResponse fetchAllBillsByTableId(Long tableId){
+    public RestaurantBillControllerFetchAllBillsByTableIdResponse fetchAllBillsByTableId(Long tableId) {
         RestaurantBillControllerFetchAllBillsByTableIdResponse parentResponse = new RestaurantBillControllerFetchAllBillsByTableIdResponse();
-        try{
+        try {
             List<BillItem> billItems = billItemRepository.findAllByTableItemId(tableId);
             parentResponse.setData(new RestaurantBillControllerFetchAllBillsByTableIdResponse.RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData());
             parentResponse.getData().setBills(new ArrayList<>());
-            for(BillItem billItem: billItems){
+            for (BillItem billItem : billItems) {
                 RestaurantBillControllerFetchAllBillsByTableIdResponse.RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData.Bill bill = new RestaurantBillControllerFetchAllBillsByTableIdResponse.RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData.Bill();
                 bill.setBillId(billItem.getId());
                 bill.setStatus(billItem.getStatus().name());
@@ -167,7 +167,7 @@ public class RestaurantBillService {
             }
             parentResponse.setStatusCode(HttpStatus.OK.value());
             return parentResponse;
-        }catch (Exception e){
+        } catch (Exception e) {
             parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
             parentResponse.setError(e.getMessage());
             return parentResponse;

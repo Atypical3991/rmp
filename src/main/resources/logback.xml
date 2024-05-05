@@ -1,7 +1,7 @@
 <configuration>
 
-    <property name="LOG_ROOT" value="${log.root.location}" />
-    <property name="LOG_FILE_NAME" value="${log.root.file}" />
+    <property name="LOG_ROOT" value="${log.root.location}"/>
+    <property name="LOG_FILE_NAME" value="${log.root.file}"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -30,10 +30,10 @@
     </logger>
 
     <root level="ERROR">
-        <appender-ref ref="FILE" />
+        <appender-ref ref="FILE"/>
     </root>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
