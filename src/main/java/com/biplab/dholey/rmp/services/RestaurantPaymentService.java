@@ -4,74 +4,70 @@ import com.biplab.dholey.rmp.models.api.request.RestaurantPaymentControllerUpdat
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.db.BillItem;
 import com.biplab.dholey.rmp.models.db.enums.BillItemStatusEnum;
+import com.biplab.dholey.rmp.util.CustomLogger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 @Service
 public class RestaurantPaymentService {
 
+    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(RestaurantPaymentService.class));
     @Autowired
     private RestaurantBillService restaurantBillService;
-
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public BaseDBOperationsResponse initiateOrderPayment(Long billId) {
-        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
+            logger.info("initiateOrderPayment called!!", "initiateOrderPayment", RestaurantPaymentService.class.toString(), Map.of("billId", billId.toString()));
             BillItem billItem = restaurantBillService.getBillGeneratedBillItemById(billId);
             if (billItem == null) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("No billItem found for billId: " + billId);
-                return parentResponse;
+                logger.info("billItem not found!!", "initiateOrderPayment", RestaurantPaymentService.class.toString(), Map.of("billId", billId.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("Bill item not found.");
             }
             if (!restaurantBillService.updatePaymentInitiatedBillItemStatus(billItem.getId())) {
-                parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-                parentResponse.setError("Something went wrong");
-                return parentResponse;
-            } else {
-                parentResponse.setStatusCode(HttpStatus.OK.value());
-                parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-                parentResponse.getData().setSuccess(true);
-                return parentResponse;
+                logger.info("updatePaymentInitiatedBillItemStatus failed!!", "initiateOrderPayment", RestaurantPaymentService.class.toString(), Map.of("billId", billId.toString()));
+                throw new RuntimeException("updatePaymentInitiatedBillItemStatus failed!!");
             }
+            logger.info("initiateOrderPayment successfully processed.", "initiateOrderPayment", RestaurantPaymentService.class.toString(), Map.of("billId", billId.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "initiateOrderPayment processed successfully.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.info("Exception raised in initiateOrderPayment.", "initiateOrderPayment", RestaurantPaymentService.class.toString(), Map.of("billId", billId.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public BaseDBOperationsResponse updatePaymentStatus(RestaurantPaymentControllerUpdatePaymentStatusRequest updatePaymentStatusRequest) {
-        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
+            logger.info("updatePaymentStatus called!!", "updatePaymentStatus", RestaurantPaymentService.class.toString(), Map.of("updatePaymentStatusRequest", updatePaymentStatusRequest.toString()));
             Long billId = updatePaymentStatusRequest.getBillId();
             BillItem billItem = restaurantBillService.fetchPaymentInitiatedBillItemById(billId);
             if (billItem == null) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("No billItem found for billID: " + billId);
-                return parentResponse;
+                logger.info("billItem not found!!", "updatePaymentStatus", RestaurantPaymentService.class.toString(), Map.of("updatePaymentStatusRequest", updatePaymentStatusRequest.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("billItem not found.");
             }
             String status = updatePaymentStatusRequest.getStatus();
             if (!restaurantBillService.updatePaymentStatus(billId, BillItemStatusEnum.valueOf(status))) {
+                logger.info("updatePaymentStatus failed!!", "updatePaymentStatus", RestaurantPaymentService.class.toString(), Map.of("updatePaymentStatusRequest", updatePaymentStatusRequest.toString()));
                 throw new RuntimeException("updatePaymentStatus failed!!");
             }
             if (BillItemStatusEnum.valueOf(status) == BillItemStatusEnum.PAYMENT_SUCCESS) {
-                restaurantTableBookService.updatePaymentReceivedAt(billItem.getTableItemId());
+                if (!restaurantTableBookService.updatePaymentReceivedAt(billItem.getTableItemId())) {
+                    throw new RuntimeException("updatePaymentReceivedAt failed.");
+                }
             }
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-            parentResponse.getData().setSuccess(true);
-            return parentResponse;
+            logger.info("updatePaymentStatus successfully processed!!", "updatePaymentStatus", RestaurantPaymentService.class.toString(), Map.of("updatePaymentStatusRequest", updatePaymentStatusRequest.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "updatePaymentStatus successfully processed.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.info("Exception raised in updatePaymentStatus!!", "updatePaymentStatus", RestaurantPaymentService.class.toString(), Map.of("updatePaymentStatusRequest", updatePaymentStatusRequest.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 }

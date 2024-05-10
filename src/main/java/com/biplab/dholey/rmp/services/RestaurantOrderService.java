@@ -15,7 +15,6 @@ import com.biplab.dholey.rmp.util.CustomLogger;
 import com.biplab.dholey.rmp.util.CustomTaskQueue;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -161,7 +160,9 @@ public class RestaurantOrderService {
                 prepareFoodTaskQueueModel.setTableId(orderItem.getTableItemId());
                 prepareFoodCustomTaskQueue.pushTask(prepareFoodTaskQueueModel);
             }
-            restaurantTableBookService.updateLastOrderPlacedAt(tableId);
+            if (!restaurantTableBookService.updateLastOrderPlacedAt(tableId)) {
+                throw new RuntimeException("updateLastOrderPlacedAt failed.");
+            }
             Boolean updatedOrderIds = restaurantTableBookService.updateOrderIdsInTabledBookedItem(tableId, orderIds);
             if (!updatedOrderIds) {
                 throw new RuntimeException("OrderIds update failed for tableId");
@@ -175,72 +176,63 @@ public class RestaurantOrderService {
     }
 
     public RestaurantOrderControllerCheckOrderStatusResponse getOrderStatus(Long orderId) {
-        RestaurantOrderControllerCheckOrderStatusResponse parentResponse = new RestaurantOrderControllerCheckOrderStatusResponse();
         try {
+            logger.info("getOrderStatus called!!", "getOrderStatus", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
             Optional<OrderItem> orderItemOpt = orderItemRepository.findById(orderId);
             if (orderItemOpt.isEmpty()) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty orderItemOpt for orderId: " + orderId);
-                return parentResponse;
+                return new RestaurantOrderControllerCheckOrderStatusResponse().getNotFoundServerErrorResponse("Order item not found.");
             }
             OrderItem orderItem = orderItemOpt.get();
-            parentResponse.setData(new RestaurantOrderControllerCheckOrderStatusResponse.RestaurantOrderControllerCheckOrderStatusResponseResponseData());
-            parentResponse.getData().setStatus(orderItem.getStatus().name());
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            return parentResponse;
+            RestaurantOrderControllerCheckOrderStatusResponse.RestaurantOrderControllerCheckOrderStatusResponseResponseData data = new RestaurantOrderControllerCheckOrderStatusResponse.RestaurantOrderControllerCheckOrderStatusResponseResponseData();
+            data.setStatus(orderItem.getStatus().name());
+            logger.info("getOrderStatus successfully processed!!", "getOrderStatus", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
+            return new RestaurantOrderControllerCheckOrderStatusResponse().getSuccessResponse(data, "getOrderStatus successfully processed.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in getOrderStatus!!", "getOrderStatus", RestaurantOrderService.class.toString(), e, Map.of("orderId", orderId.toString()));
+            return new RestaurantOrderControllerCheckOrderStatusResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
     public BaseDBOperationsResponse deleteOrder(Long orderId) {
-        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
+            logger.info("deleteOrder called!!", "deleteOrder", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
             Optional<OrderItem> orderItemOpt = orderItemRepository.findById(orderId);
             if (orderItemOpt.isEmpty()) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty orderItemOpt returned for orderId: " + orderId);
-                return parentResponse;
+                logger.info("order item not found!!", "deleteOrder", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("Order item not found.");
             }
             if (orderItemOpt.get().getStatus() != OrderItemStatusEnum.QUEUED) {
-                parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
-                parentResponse.setError("Order can't be deleted as Order not in QUEUED state anymore.");
-                return parentResponse;
+                logger.info("order item not in queued state!!", "deleteOrder", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Order can't be deleted as Order not in QUEUED state anymore.");
             }
             OrderItem orderItem = orderItemOpt.get();
             orderItem.setStatus(OrderItemStatusEnum.DELETED);
             orderItemRepository.save(orderItem);
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-            parentResponse.getData().setSuccess(true);
-            return parentResponse;
+            logger.info("deleteOrder successfully processed!!", "deleteOrder", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "deleteOrder successfully processed.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in deleteOrder!!", "deleteOrder", RestaurantOrderService.class.toString(), e, Map.of("orderId", orderId.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
     public RestaurantOrderControllerFetchAllOrdersByTableResponse fetchAllOrdersByTableId(Long tableId) {
-        RestaurantOrderControllerFetchAllOrdersByTableResponse parentResponse = new RestaurantOrderControllerFetchAllOrdersByTableResponse();
         try {
+            logger.info("fetchAllOrdersByTableId called!!", "fetchAllOrdersByTableId", RestaurantOrderService.class.toString(), Map.of("tableId", tableId.toString()));
             List<OrderItem> orderItems = orderItemRepository.findAllByTableItemId(tableId);
-            parentResponse.setData(new RestaurantOrderControllerFetchAllOrdersByTableResponse.RestaurantOrderControllerFetchAllOrdersByTableResponseResponseData());
-            parentResponse.getData().setOrders(new ArrayList<>());
+            RestaurantOrderControllerFetchAllOrdersByTableResponse.RestaurantOrderControllerFetchAllOrdersByTableResponseResponseData data = new RestaurantOrderControllerFetchAllOrdersByTableResponse.RestaurantOrderControllerFetchAllOrdersByTableResponseResponseData();
+            data.setOrders(new ArrayList<>());
             for (OrderItem orderItem : orderItems) {
                 RestaurantOrderControllerFetchAllOrdersByTableResponse.RestaurantOrderControllerFetchAllOrdersByTableResponseResponseData.Order order = new RestaurantOrderControllerFetchAllOrdersByTableResponse.RestaurantOrderControllerFetchAllOrdersByTableResponseResponseData.Order();
                 order.setOrderId(orderItem.getId());
                 order.setOrderStatus(orderItem.getStatus().name());
-                parentResponse.getData().getOrders().add(order);
+                data.getOrders().add(order);
             }
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            return parentResponse;
+            logger.info("fetchAllOrdersByTableId successfully processed!!", "fetchAllOrdersByTableId", RestaurantOrderService.class.toString(), Map.of("tableId", tableId.toString()));
+            return new RestaurantOrderControllerFetchAllOrdersByTableResponse().getSuccessResponse(data, "fetchAllOrdersByTableId successfully processed");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in fetchAllOrdersByTableId!!", "fetchAllOrdersByTableId", RestaurantOrderService.class.toString(), e, Map.of("tableId", tableId.toString()));
+            return new RestaurantOrderControllerFetchAllOrdersByTableResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
