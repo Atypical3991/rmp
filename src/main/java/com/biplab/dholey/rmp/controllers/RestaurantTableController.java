@@ -36,9 +36,9 @@ public class RestaurantTableController {
         return ResponseEntity.ok().body(restaurantTableService.fetchTableStatus(tableNumber));
     }
 
-    @PutMapping("/book-table")
-    public ResponseEntity<BaseDBOperationsResponse> bookTable(@RequestParam(value = "tableNumber") Long tableNumber) {
-        return ResponseEntity.ok().body(restaurantTableService.bookTable(tableNumber));
+    @PutMapping("/book-table-by-table-number")
+    public ResponseEntity<BaseDBOperationsResponse> bookTableByTableNumber(@RequestParam(value = "tableNumber") Long tableNumber) {
+        return ResponseEntity.ok().body(restaurantTableService.bookTableByTableNumber(tableNumber));
     }
 
     @PutMapping("/book-table-by-occupancy")

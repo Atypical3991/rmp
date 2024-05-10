@@ -2,7 +2,6 @@ package com.biplab.dholey.rmp.components;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.constraints.Null;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,6 +20,6 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
 
     @Override
     public void postHandle(@NonNull HttpServletRequest request, HttpServletResponse response, @NonNull Object handler, ModelAndView modelAndView) {
-        log.info("Request URL: {}, Method: {} and Response Status: {}", request.getRequestURL(), request.getMethod(),response.getStatus());
+        log.info("Request URL: {}, Method: {} and Response Status: {}", request.getRequestURL(), request.getMethod(), response.getStatus());
     }
 }

@@ -21,18 +21,13 @@ public class TableNotificationService {
     private final int MAKE_PAYMENT_MAX_NOTIFICATION_COUNT = 3;
 
     private final int CONSECUTIVE_MAKE_PAYMENT_MAX_NOTIFICATION_ = 3;
-
-    @Autowired
-    private RestaurantTableService restaurantTableService;
-
+    private final TaskQueue tableNotificationTaskQueue = new TaskQueue("restaurant_table_notification_task_queue", 1000);
     @Autowired
     TableBookRepository tableBookRepository;
-
-
+    @Autowired
+    private RestaurantTableService restaurantTableService;
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
-
-    private final TaskQueue tableNotificationTaskQueue = new TaskQueue("restaurant_table_notification_task_queue", 1000);
 
     public void tableCleanedNotification(Long tableBookItemId) {
         tableNotificationTaskQueue.pushTask(new NotificationTaskQueueModel(tableBookItemId, "Your table cleaning is done."));
@@ -54,7 +49,7 @@ public class TableNotificationService {
         tableNotificationTaskQueue.pushTask(new NotificationTaskQueueModel(tableBookItemId, "Your orders has been served successfully."));
     }
 
-    public NotificationTaskQueueModel popNotificationTask(){
-        return (NotificationTaskQueueModel)tableNotificationTaskQueue.popTask();
+    public NotificationTaskQueueModel popNotificationTask() {
+        return (NotificationTaskQueueModel) tableNotificationTaskQueue.popTask();
     }
 }

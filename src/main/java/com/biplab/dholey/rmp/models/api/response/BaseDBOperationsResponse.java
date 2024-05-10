@@ -14,6 +14,4 @@ public class BaseDBOperationsResponse extends BaseResponse {
         @JsonProperty("success")
         private Boolean success;
     }
-
-
 }

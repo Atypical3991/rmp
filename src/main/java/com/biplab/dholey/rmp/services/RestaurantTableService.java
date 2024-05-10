@@ -25,7 +25,7 @@ import static org.springframework.transaction.annotation.Isolation.SERIALIZABLE;
 @Service
 public class RestaurantTableService {
 
-    private final TaskQueue tableCleaningTaskQueue = new TaskQueue("restaurant_table_cleaning_task_queue",100);
+    private final TaskQueue tableCleaningTaskQueue = new TaskQueue("restaurant_table_cleaning_task_queue", 100);
     @Autowired
     private TableItemRepository tableItemRepository;
 
@@ -57,7 +57,7 @@ public class RestaurantTableService {
     }
 
     @Transactional(isolation = SERIALIZABLE)
-    public BaseDBOperationsResponse bookTable(Long tableNumber) {
+    public BaseDBOperationsResponse bookTableByTableNumber(Long tableNumber) {
         BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
             TableItem tableItem = tableItemRepository.findByTableNumberAndStatus(tableNumber, TableItemStatusEnum.AVAILABLE);

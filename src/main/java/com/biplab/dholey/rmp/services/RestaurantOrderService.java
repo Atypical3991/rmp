@@ -25,7 +25,7 @@ public class RestaurantOrderService {
 
     private static final Long MAX_ORDER_QUEUED_COUNT = 50L;
     private static final Long MAX_ORDER_PER_REQUEST = 10L;
-    private final TaskQueue prepareFoodTaskQueue = new TaskQueue("prepare_food_task_queue",100);
+    private final TaskQueue prepareFoodTaskQueue = new TaskQueue("prepare_food_task_queue", 100);
     @Autowired
     private OrderItemRepository orderItemRepository;
     @Autowired

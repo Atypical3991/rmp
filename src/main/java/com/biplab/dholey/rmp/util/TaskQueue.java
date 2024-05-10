@@ -20,8 +20,8 @@ public class TaskQueue {
     }
 
     public boolean pushTask(TaskQueueInterface task) {
-        if(queue.size() == max_queue_size){
-            throw  new RuntimeException("Queue is full!! please retry after some time.");
+        if (queue.size() == max_queue_size) {
+            throw new RuntimeException("Queue is full!! please retry after some time.");
         }
         return queue.add(task);
     }

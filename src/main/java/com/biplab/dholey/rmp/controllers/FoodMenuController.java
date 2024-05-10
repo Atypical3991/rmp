@@ -5,7 +5,6 @@ import com.biplab.dholey.rmp.models.api.request.FoodMenuItemControllerAddMenuIte
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.api.response.FoodMenuControllerFetchFoodMenuResponse;
 import com.biplab.dholey.rmp.services.FoodMenuService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
