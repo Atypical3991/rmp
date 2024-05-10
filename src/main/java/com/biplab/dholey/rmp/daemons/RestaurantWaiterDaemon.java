@@ -18,7 +18,7 @@ public class RestaurantWaiterDaemon extends Thread {
     private static final int MAX_NUMBER_OF_WORKERS = 10;
     private final RestaurantWaiterService restaurantWaiterService;
 
-    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(BillGeneratorDaemon.class));
+    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(RestaurantWaiterDaemon.class));
 
 
     @Autowired

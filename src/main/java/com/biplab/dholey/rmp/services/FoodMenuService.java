@@ -8,123 +8,109 @@ import com.biplab.dholey.rmp.models.api.response.FoodMenuControllerFetchFoodMenu
 import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.RecipeItem;
 import com.biplab.dholey.rmp.repositories.FoodMenuItemRepository;
+import com.biplab.dholey.rmp.util.CustomLogger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class FoodMenuService {
 
+    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(FoodMenuService.class));
     @Autowired
     private RestaurantRecipeService restaurantRecipeService;
-
     @Autowired
     private FoodMenuItemRepository foodMenuItemRepository;
 
-
     public FoodMenuItem getFoodMenuItemById(Long foodMenuId) {
+        logger.info("getFoodMenuItemById called", "getFoodMenuItemById", FoodMenuService.class.toString(), Map.of("foodMenuId", foodMenuId.toString()));
         return foodMenuItemRepository.findById(foodMenuId).orElse(null);
     }
 
     public FoodMenuControllerFetchFoodMenuResponse fetchFoodMenuItem() {
-        FoodMenuControllerFetchFoodMenuResponse parentResponse = new FoodMenuControllerFetchFoodMenuResponse();
         try {
+            logger.info("fetchFoodMenuItem called!!", "fetchFoodMenuItem", FoodMenuService.class.toString(), null);
             List<FoodMenuItem> foodMenuItems = foodMenuItemRepository.findAll();
-            parentResponse.setData(new FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData());
-            FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData response = parentResponse.getData();
-            response.setMenuItems(new ArrayList<>());
+            FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData data = new FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData();
+            data.setMenuItems(new ArrayList<>());
             for (FoodMenuItem foodMenuItem : foodMenuItems) {
                 FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData.MenuItem menuItem = new FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData.MenuItem();
                 RecipeItem recipeItem = restaurantRecipeService.getRecipeItemById(foodMenuItem.getRecipeItemId());
                 menuItem.setName(recipeItem.getName());
                 menuItem.setPrice(foodMenuItem.getPrice());
                 menuItem.setDescription(recipeItem.getDescription());
-                response.getMenuItems().add(menuItem);
+                data.getMenuItems().add(menuItem);
             }
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            parentResponse.setMessage("foodMenuItems fetched successfully!!");
-            return parentResponse;
+            logger.info("fetchFoodMenuItem processed successfully!!", "fetchFoodMenuItem", FoodMenuService.class.toString(), null);
+            return (FoodMenuControllerFetchFoodMenuResponse) new FoodMenuControllerFetchFoodMenuResponse().getSuccessResponse(data, "foodMenuItems fetched successfully!!");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised inside fetchFoodMenuItem!!", "fetchFoodMenuItem", FoodMenuService.class.toString(), e, null);
+            return (FoodMenuControllerFetchFoodMenuResponse) new FoodMenuControllerFetchFoodMenuResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
     public BaseDBOperationsResponse addFoodMenuItem(FoodMenuItemControllerAddMenuItemRequest addMenuItemRequest) {
-        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
+            logger.info("addFoodMenuItem called!!", "addFoodMenuItem", FoodMenuService.class.toString(), Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
             Long recipeItemId = addMenuItemRequest.getRecipeItemId();
             FoodMenuItem foodMenuItem = foodMenuItemRepository.findByRecipeItemId(recipeItemId);
             if (foodMenuItem != null) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("FoodMenuItem not found for recipeItemId: " + recipeItemId);
-                return parentResponse;
+                logger.info("foodMenuItem not found!!", "addFoodMenuItem", FoodMenuService.class.toString(), Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("FoodMenuItem not found for recipeItemId: " + recipeItemId);
             }
             FoodMenuItem newFoodMenuItem = new FoodMenuItem();
             newFoodMenuItem.setRecipeItemId(recipeItemId);
             newFoodMenuItem.setPrice(addMenuItemRequest.getPrice());
             foodMenuItemRepository.save(newFoodMenuItem);
-            parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-            BaseDBOperationsResponse.BaseDBOperationsResponseResponseData response = parentResponse.getData();
-            response.setSuccess(true);
-            return parentResponse;
+            logger.info("addFoodMenuItem  processed successfully!!", "addFoodMenuItem", FoodMenuService.class.toString(), Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Removed food menu successfully.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in addFoodMenuItem!!", "addFoodMenuItem", FoodMenuService.class.toString(), e, Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
     public BaseDBOperationsResponse removeFoodMenuItem(Long foodMenuItemId) {
-        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
+            logger.info("removeFoodMenuItem called!!", "removeFoodMenuItem", FoodMenuService.class.toString(), Map.of("foodMenuItemId", foodMenuItemId.toString()));
             Optional<FoodMenuItem> foodMenuItemOpt = foodMenuItemRepository.findById(foodMenuItemId);
             if (foodMenuItemOpt.isEmpty()) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty foodMenuItemOpt received for foodMenuItemId: " + foodMenuItemId);
-                return parentResponse;
+                logger.info("foodMenuItem not found", "removeFoodMenuItem", FoodMenuService.class.toString(), Map.of("foodMenuItemId", foodMenuItemId.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("Empty foodMenuItemOpt received for foodMenuItemId: " + foodMenuItemId);
             }
             foodMenuItemRepository.deleteById(foodMenuItemId);
-            parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-            BaseDBOperationsResponse.BaseDBOperationsResponseResponseData response = parentResponse.getData();
-            response.setSuccess(true);
-            return parentResponse;
-
+            logger.info("removeFoodMenuItem processed successfully!!", "removeFoodMenuItem", FoodMenuService.class.toString(), Map.of("foodMenuItemId", foodMenuItemId.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Removed food menu successfully.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in removeFoodMenuItem!!", "removeFoodMenuItem", FoodMenuService.class.toString(), e, Map.of("foodMenuItemId", foodMenuItemId.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
     public BaseDBOperationsResponse modifyFoodMenuItem(FoodMenuControllerModifyMenuItem modifyFoodMenuItemRequest) {
-        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
+            logger.info("modifyFoodMenuItem called!!", "modifyFoodMenuItem", FoodMenuService.class.toString(), Map.of("modifyFoodMenuItemRequest", modifyFoodMenuItemRequest.toString()));
             Long foodMenuItemId = modifyFoodMenuItemRequest.getFoodMenuItemId();
             Optional<FoodMenuItem> foodMenuItemOpt = foodMenuItemRepository.findById(foodMenuItemId);
             if (foodMenuItemOpt.isEmpty()) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty foodMenuItemOpt received for foodMenuItemId: " + foodMenuItemId);
-                return parentResponse;
+                logger.info("foodMenuItem not found!!", "modifyFoodMenuItem", FoodMenuService.class.toString(), Map.of("modifyFoodMenuItemRequest", modifyFoodMenuItemRequest.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("Empty foodMenuItemOpt received for foodMenuItemId: " + foodMenuItemId);
             }
             FoodMenuItem foodMenuItem = foodMenuItemOpt.get();
             if (modifyFoodMenuItemRequest.getPrice() != null) {
                 foodMenuItem.setPrice(modifyFoodMenuItemRequest.getPrice());
             }
             foodMenuItemRepository.save(foodMenuItem);
-            parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-            BaseDBOperationsResponse.BaseDBOperationsResponseResponseData response = parentResponse.getData();
-            response.setSuccess(true);
-            return parentResponse;
+            logger.info("modifyFoodMenuItem processed successfully!!", "modifyFoodMenuItem", FoodMenuService.class.toString(), Map.of("modifyFoodMenuItemRequest", modifyFoodMenuItemRequest.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Food menu modified successfully.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in modifyFoodMenuItem!!", "modifyFoodMenuItemRequest", FoodMenuService.class.toString(), e, Map.of("modifyFoodMenuItemRequest", modifyFoodMenuItemRequest.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 }

@@ -26,13 +26,14 @@ public class CustomLogger {
             m.putAll(attr);
         }
         try {
-            logger.info(StringUtil.MapToJSONString(m));
+            logger.info(CustomStringUtil.MapToJSONString(m));
         } catch (Exception e) {
             log.error("Inside info, exception raised", e);
         }
     }
 
     public void error(String message, String method, String class_, Exception ex, Map<String, String> attr) {
+        //TODO: add a error logger channel (queue), which could later be pushed into Error Log Database.
         Map<String, String> m = new HashMap<>();
         m.put("message", message);
         m.put("method", method);
@@ -43,7 +44,7 @@ public class CustomLogger {
             m.putAll(attr);
         }
         try {
-            logger.info(StringUtil.MapToJSONString(m));
+            logger.info(CustomStringUtil.MapToJSONString(m));
         } catch (Exception e) {
             log.error("Inside error, exception raised", e);
         }
@@ -58,7 +59,7 @@ public class CustomLogger {
             m.putAll(attr);
         }
         try {
-            logger.info(StringUtil.MapToJSONString(m));
+            logger.info(CustomStringUtil.MapToJSONString(m));
         } catch (Exception e) {
             log.error("Inside debug, exception raised", e);
         }

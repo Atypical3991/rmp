@@ -16,7 +16,7 @@ public class TableNotificationDaemon extends Thread {
     private static final int MAX_NUMBER_OF_WORKERS = 10;
     private final TableNotificationService tableNotificationService;
 
-    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(BillGeneratorDaemon.class));
+    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(TableNotificationDaemon.class));
 
 
     @Autowired

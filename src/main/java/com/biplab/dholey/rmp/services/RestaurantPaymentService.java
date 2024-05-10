@@ -58,7 +58,9 @@ public class RestaurantPaymentService {
                 return parentResponse;
             }
             String status = updatePaymentStatusRequest.getStatus();
-            restaurantBillService.updatePaymentStatus(billId, BillItemStatusEnum.valueOf(status));
+            if (!restaurantBillService.updatePaymentStatus(billId, BillItemStatusEnum.valueOf(status))) {
+                throw new RuntimeException("updatePaymentStatus failed!!");
+            }
             if (BillItemStatusEnum.valueOf(status) == BillItemStatusEnum.PAYMENT_SUCCESS) {
                 restaurantTableBookService.updatePaymentReceivedAt(billItem.getTableItemId());
             }

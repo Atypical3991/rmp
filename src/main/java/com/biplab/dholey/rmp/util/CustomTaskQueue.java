@@ -5,7 +5,7 @@ import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class TaskQueue {
+public class CustomTaskQueue {
 
     private final String service;
 
@@ -13,7 +13,7 @@ public class TaskQueue {
     private final BlockingQueue<TaskQueueInterface> queue;
 
 
-    public TaskQueue(String serviceName, int max_queue_size) {
+    public CustomTaskQueue(String serviceName, int max_queue_size) {
         this.queue = new LinkedBlockingQueue<TaskQueueInterface>();
         this.service = serviceName;
         this.max_queue_size = max_queue_size;

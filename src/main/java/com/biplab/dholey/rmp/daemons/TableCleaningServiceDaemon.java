@@ -22,7 +22,7 @@ public class TableCleaningServiceDaemon extends Thread {
 
     private final TableNotificationService tableNotificationService;
 
-    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(BillGeneratorDaemon.class));
+    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(TableCleaningServiceDaemon.class));
 
 
     @Autowired

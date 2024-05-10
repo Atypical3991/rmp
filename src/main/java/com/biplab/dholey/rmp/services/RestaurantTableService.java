@@ -10,7 +10,7 @@ import com.biplab.dholey.rmp.models.util.TaskQueueModels.TableCleanRequestTaskQu
 import com.biplab.dholey.rmp.repositories.TableItemRepository;
 import com.biplab.dholey.rmp.transformers.RestaurantTableControllerAddTableRequestToTableItemTransformer;
 import com.biplab.dholey.rmp.transformers.TableItemToRestaurantTableControllerFetchTableStatusResponseTransformer;
-import com.biplab.dholey.rmp.util.TaskQueue;
+import com.biplab.dholey.rmp.util.CustomTaskQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ import static org.springframework.transaction.annotation.Isolation.SERIALIZABLE;
 @Service
 public class RestaurantTableService {
 
-    private final TaskQueue tableCleaningTaskQueue = new TaskQueue("restaurant_table_cleaning_task_queue", 100);
+    private final CustomTaskQueue tableCleaningCustomTaskQueue = new CustomTaskQueue("restaurant_table_cleaning_task_queue", 100);
     @Autowired
     private TableItemRepository tableItemRepository;
 
@@ -214,7 +214,7 @@ public class RestaurantTableService {
         try {
             TableCleanRequestTaskQueueModel tableCleanRequestTaskQueueModel = new TableCleanRequestTaskQueueModel();
             tableCleanRequestTaskQueueModel.setTableId(tableId);
-            tableCleaningTaskQueue.pushTask(tableCleanRequestTaskQueueModel);
+            tableCleaningCustomTaskQueue.pushTask(tableCleanRequestTaskQueueModel);
             parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
             parentResponse.getData().setSuccess(true);
             parentResponse.setStatusCode(HttpStatus.OK.value());
@@ -227,7 +227,7 @@ public class RestaurantTableService {
     }
 
     public TableCleanRequestTaskQueueModel popCleaningTableTask() {
-        return (TableCleanRequestTaskQueueModel) tableCleaningTaskQueue.popTask();
+        return (TableCleanRequestTaskQueueModel) tableCleaningCustomTaskQueue.popTask();
     }
 
 }

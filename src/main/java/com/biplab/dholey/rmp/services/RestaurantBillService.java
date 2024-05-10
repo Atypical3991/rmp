@@ -11,45 +11,48 @@ import com.biplab.dholey.rmp.models.db.OrderItem;
 import com.biplab.dholey.rmp.models.db.enums.BillItemStatusEnum;
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.GenerateBillTaskQueueModel;
 import com.biplab.dholey.rmp.repositories.BillItemRepository;
-import com.biplab.dholey.rmp.util.TaskQueue;
+import com.biplab.dholey.rmp.util.CustomLogger;
+import com.biplab.dholey.rmp.util.CustomTaskQueue;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class RestaurantBillService {
 
-    private final TaskQueue generateBillTaskQueue = new TaskQueue("restaurant_generate_bill_task_queue", 100);
-
+    private final CustomTaskQueue generateBillCustomTaskQueue = new CustomTaskQueue("restaurant_generate_bill_task_queue", 100);
+    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(RestaurantBillService.class));
     @Autowired
     private RestaurantOrderService restaurantOrderService;
-
     @Autowired
     private FoodMenuService foodMenuService;
-
     @Autowired
     private BillItemRepository billItemRepository;
-
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
 
     public BillItem getBillGeneratedBillItemById(Long billId) {
+        logger.info("getBillGeneratedBillItemById called!!", "getBillGeneratedBillItemById", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
         return billItemRepository.findByIdAndStatus(billId, BillItemStatusEnum.BILL_GENERATED);
     }
 
-    public BillItem fetchPaymentInitiatedBillItemById(Long billItemId) {
-        return billItemRepository.findByIdAndStatus(billItemId, BillItemStatusEnum.PAYMENT_INITIATED);
+    public BillItem fetchPaymentInitiatedBillItemById(Long billId) {
+        logger.info("fetchPaymentInitiatedBillItemById called!!", "fetchPaymentInitiatedBillItemById", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
+        return billItemRepository.findByIdAndStatus(billId, BillItemStatusEnum.PAYMENT_INITIATED);
     }
 
 
     public Boolean updatePaymentInitiatedBillItemStatus(Long billId) {
+        logger.info("updatePaymentInitiatedBillItemStatus called!!", "updatePaymentInitiatedBillItemStatus", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
         Optional<BillItem> billItemOpt = billItemRepository.findById(billId);
         if (billItemOpt.isEmpty()) {
+            logger.error("updatePaymentInitiatedBillItemStatus called!!", "updatePaymentInitiatedBillItemStatus", RestaurantBillService.class.toString(), new RuntimeException("Bill not found"), Map.of("billId", billId.toString()));
             return false;
         }
         billItemOpt.get().setStatus(BillItemStatusEnum.PAYMENT_INITIATED);
@@ -58,8 +61,10 @@ public class RestaurantBillService {
     }
 
     public Boolean updatePaymentStatus(Long billId, BillItemStatusEnum status) {
+        logger.info("updatePaymentStatus called!!", "updatePaymentStatus", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
         Optional<BillItem> billItemOpt = billItemRepository.findById(billId);
         if (billItemOpt.isEmpty()) {
+            logger.error("Bill item not found!!", "updatePaymentStatus", RestaurantBillService.class.toString(), new RuntimeException("Bill item not found."), Map.of("billId", billId.toString()));
             return false;
         }
         billItemOpt.get().setStatus(status);
@@ -67,131 +72,124 @@ public class RestaurantBillService {
         return true;
     }
 
+    public GenerateBillTaskQueueModel popGenerateBillTask() {
+        logger.info("popGenerateBillTask called!!", "updatePaymentStatus", RestaurantBillService.class.toString(), null);
+        return (GenerateBillTaskQueueModel) generateBillCustomTaskQueue.popTask();
+    }
+
     @Transactional
     public void processGenerateBillTask(GenerateBillTaskQueueModel generateBillTaskQueueModel) {
         try {
+            logger.info("processGenerateBillTask called!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("generateBillTaskQueueModel", generateBillTaskQueueModel.toString()));
             List<Long> orderItemsIds = generateBillTaskQueueModel.getOrderItemIds();
             List<OrderItem> orderItemsList = restaurantOrderService.fetchAllOrdersByOrderIds(orderItemsIds);
             BillItem billItem = new BillItem();
             for (OrderItem orderItem : orderItemsList) {
                 FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
                 if (foodMenuItem == null) {
+                    logger.info("foodMenuItem not found!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("orderItem", orderItem.toString()));
                     continue;
                 }
                 billItem.setPayable(billItem.getPayable() + (foodMenuItem.getPrice() * orderItem.getQuantity()));
                 billItem.getOrderItemIds().add(orderItem.getId());
                 orderItem.setBillGenerated(true);
                 if (!restaurantOrderService.updateBillGenerationStatus(orderItem.getId())) {
+                    logger.info("updateBillGenerationStatus failed!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("orderItem", orderItem.toString()));
                     throw new RuntimeException("Bill generation status hasn't been updated!! for tableId: " + generateBillTaskQueueModel.getTableId() + " and orderIds : " + String.join(",", generateBillTaskQueueModel.getOrderItemIds().stream().map(Object::toString).toArray(String[]::new)));
                 }
             }
             billItem.setStatus(BillItemStatusEnum.BILL_GENERATED);
             billItem.setTableItemId(generateBillTaskQueueModel.getTableId());
             billItemRepository.save(billItem);
-            restaurantTableBookService.updateBillGenerateAt(generateBillTaskQueueModel.getTableId());
+            if (!restaurantTableBookService.updateBillGenerateAt(generateBillTaskQueueModel.getTableId())) {
+                throw new RuntimeException("updateBillGenerateAt call failed!!");
+            }
+            logger.info("processGenerateBillTask successfully resolved!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("generateBillTaskQueueModel", generateBillTaskQueueModel.toString()));
         } catch (Exception e) {
+            logger.info("Exception raised in processGenerateBillTask!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("generateBillTaskQueueModel", generateBillTaskQueueModel.toString()));
         }
-
-
     }
 
     @Transactional
     public BaseDBOperationsResponse generateBill(RestaurantBillControllerGenerateBillRequest generateBillRequest) {
-        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
+            logger.info("generateBill called!!", "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
             List<Long> orderIds = generateBillRequest.getOrderIds();
             List<OrderItem> ordersItemList = restaurantOrderService.fetchAllUnBilledOrders(orderIds);
             if (ordersItemList.isEmpty()) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("No UnBilled Orders found!!");
-                return parentResponse;
+                logger.info("No UnBilled Orders found!!", "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("No UnBilled Orders found!!");
             }
-
-            parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-            parentResponse.setMessage("Bill generation has been queued!! you'll be notified once its been processed.");
-            parentResponse.getData().setSuccess(true);
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            return parentResponse;
+            logger.info("generateBill successfully processed!!", "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Bill generation has been queued!! you'll be notified once its been processed.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in generateBill!!", "generateBill", RestaurantBillService.class.toString(), e, Map.of("generateBillRequest", generateBillRequest.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
 
     }
 
     public RestaurantBillControllerOrderBillProcessingStatusResponse fetchBillStatus(Long billId) {
-        RestaurantBillControllerOrderBillProcessingStatusResponse parentResponse = new RestaurantBillControllerOrderBillProcessingStatusResponse();
         try {
+            logger.info("fetchBillStatus called!!", "fetchBillStatus", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
             Optional<BillItem> billItemOpt = billItemRepository.findById(billId);
             if (billItemOpt.isEmpty()) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty billItemOpt returned for billId: " + billId);
-                return parentResponse;
+                logger.info("No bill item found.", "fetchBillStatus", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
+                return new RestaurantBillControllerOrderBillProcessingStatusResponse().getNotFoundServerErrorResponse("Bill item not found");
             }
-            parentResponse.setData(new RestaurantBillControllerOrderBillProcessingStatusResponse.RestaurantBillControllerOrderBillProcessingStatusResponseResponseData());
-            parentResponse.getData().setStatus(billItemOpt.get().getStatus().name());
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            return parentResponse;
+            RestaurantBillControllerOrderBillProcessingStatusResponse.RestaurantBillControllerOrderBillProcessingStatusResponseResponseData data = new RestaurantBillControllerOrderBillProcessingStatusResponse.RestaurantBillControllerOrderBillProcessingStatusResponseResponseData();
+            data.setStatus(billItemOpt.get().getStatus().name());
+            logger.info("fetchBillStatus successfully processed!!", "fetchBillStatus", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
+            return new RestaurantBillControllerOrderBillProcessingStatusResponse().getSuccessResponse(data, "fetchBillStatus successfully processed.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in fetchBillStatus", "fetchBillStatus", RestaurantBillService.class.toString(), e, Map.of("billId", billId.toString()));
+            return new RestaurantBillControllerOrderBillProcessingStatusResponse().getInternalServerErrorResponse("Internal server error.", e);
         }
     }
 
     public BaseDBOperationsResponse updateBillStatus(RestaurantBillControllerUpdateBillStatusRequest updateBillRequest) {
-        BaseDBOperationsResponse parentResponse = new BaseDBOperationsResponse();
         try {
+            logger.info("updateBillStatus called!!", "updateBillStatus", RestaurantBillService.class.toString(), Map.of("updateBillRequest", updateBillRequest.toString()));
             BillItemStatusEnum status = BillItemStatusEnum.valueOf(updateBillRequest.getStatus());
             if (!List.of(BillItemStatusEnum.BILL_PROCESSED, BillItemStatusEnum.PAYMENT_INITIATED, BillItemStatusEnum.PAYMENT_FAILED, BillItemStatusEnum.PAYMENT_SUCCESS).contains(status)) {
-                parentResponse.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
-                parentResponse.setError("Not an acceptable status value.");
-                return parentResponse;
+                logger.info("un-supported status received!!", "updateBillStatus", RestaurantBillService.class.toString(), Map.of("updateBillRequest", updateBillRequest.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("un-supported status received!!");
             }
             Optional<BillItem> billItemOpt = billItemRepository.findById(updateBillRequest.getBillId());
             if (billItemOpt.isEmpty()) {
-                parentResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
-                parentResponse.setError("Empty billItemOpt for billId: " + updateBillRequest.getBillId());
-                return parentResponse;
+                logger.info("bill item not found!!", "updateBillStatus", RestaurantBillService.class.toString(), Map.of("updateBillRequest", updateBillRequest.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("bill item not found!!");
             }
             BillItem billItem = billItemOpt.get();
             billItem.setStatus(status);
             billItemRepository.save(billItem);
-            parentResponse.setData(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData());
-            parentResponse.getData().setSuccess(true);
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            return parentResponse;
+            logger.info("updateBillStatus successfully processed!!", "updateBillStatus", RestaurantBillService.class.toString(), Map.of("updateBillRequest", updateBillRequest.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "updateBillStatus successfully processed.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in updateBillStatus", "updateBillStatus", RestaurantBillService.class.toString(), e, Map.of("updateBillRequest", updateBillRequest.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
     public RestaurantBillControllerFetchAllBillsByTableIdResponse fetchAllBillsByTableId(Long tableId) {
-        RestaurantBillControllerFetchAllBillsByTableIdResponse parentResponse = new RestaurantBillControllerFetchAllBillsByTableIdResponse();
         try {
+            logger.info("fetchAllBillsByTableId called!!", "fetchAllBillsByTableId", RestaurantBillService.class.toString(), Map.of("tableId", tableId.toString()));
             List<BillItem> billItems = billItemRepository.findAllByTableItemId(tableId);
-            parentResponse.setData(new RestaurantBillControllerFetchAllBillsByTableIdResponse.RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData());
-            parentResponse.getData().setBills(new ArrayList<>());
+            RestaurantBillControllerFetchAllBillsByTableIdResponse.RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData data = new RestaurantBillControllerFetchAllBillsByTableIdResponse.RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData();
+            data.setBills(new ArrayList<>());
             for (BillItem billItem : billItems) {
                 RestaurantBillControllerFetchAllBillsByTableIdResponse.RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData.Bill bill = new RestaurantBillControllerFetchAllBillsByTableIdResponse.RestaurantBillControllerFetchAllBillsByTableIdResponseResponseData.Bill();
                 bill.setBillId(billItem.getId());
                 bill.setStatus(billItem.getStatus().name());
-                parentResponse.getData().getBills().add(bill);
+                data.getBills().add(bill);
             }
-            parentResponse.setStatusCode(HttpStatus.OK.value());
-            return parentResponse;
+            logger.info("fetchAllBillsByTableId successfully processed!!", "fetchAllBillsByTableId", RestaurantBillService.class.toString(), Map.of("tableId", tableId.toString()));
+            return new RestaurantBillControllerFetchAllBillsByTableIdResponse().getSuccessResponse(data, "fetchAllBillsByTableId successfully processed.");
         } catch (Exception e) {
-            parentResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            parentResponse.setError(e.getMessage());
-            return parentResponse;
+            logger.error("Exception raised in fetchAllBillsByTableId", "fetchAllBillsByTableId", RestaurantBillService.class.toString(), e, Map.of("tableId", tableId.toString()));
+            return new RestaurantBillControllerFetchAllBillsByTableIdResponse().getInternalServerErrorResponse("Internal server error.", e);
         }
 
     }
 
-    public GenerateBillTaskQueueModel popGenerateBillTask() {
-        return (GenerateBillTaskQueueModel) generateBillTaskQueue.popTask();
-    }
 }

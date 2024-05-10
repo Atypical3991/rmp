@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 public class KitchenCookDaemon extends Thread {
 
     private static final int MAX_NUMBER_OF_WORKERS = 10;
-    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(BillGeneratorDaemon.class));
+    private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(KitchenCookDaemon.class));
     @Autowired
     private KitchenCookService kitchenCookService;
 

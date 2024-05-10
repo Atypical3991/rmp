@@ -32,7 +32,9 @@ public class RestaurantWaiterService {
                     log.error("Inside serveReadyToServerFood, ");
                 }
                 restaurantTableBookService.updateLastOrderServedAt(tableId);
-                restaurantOrderService.updateOrderStatusByListOfOrderIds(OrderItemStatusEnum.SERVED, orderIds);
+                if (!restaurantOrderService.updateOrderStatusByListOfOrderIds(OrderItemStatusEnum.SERVED, orderIds)) {
+                    throw new RuntimeException("updateOrderStatusByListOfOrderIds failed.");
+                }
             }
         }
 
