@@ -1,7 +1,7 @@
 package com.biplab.dholey.rmp.daemons;
 
 
-import com.biplab.dholey.rmp.models.util.PrepareFoodTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.PrepareFoodTaskQueueModel;
 import com.biplab.dholey.rmp.services.KitchenCookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class KitchenCookDaemon extends Thread {
 
-    private static final int MAX_NUMBER_OF_CHEF = 10;
+    private static final int MAX_NUMBER_OF_WORKERS = 10;
     @Autowired
     private KitchenCookService kitchenCookService;
 
@@ -26,7 +26,7 @@ public class KitchenCookDaemon extends Thread {
 
     @Override
     public void run() {
-        ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_CHEF);
+        ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 PrepareFoodTaskQueueModel queuedOrder = kitchenCookService.fetchAllOrdersToBeProcessed();

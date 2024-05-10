@@ -6,7 +6,7 @@ import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchA
 import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchTableStatusResponse;
 import com.biplab.dholey.rmp.models.db.TableItem;
 import com.biplab.dholey.rmp.models.db.enums.TableItemStatusEnum;
-import com.biplab.dholey.rmp.models.util.TableCleanRequestTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TableCleanRequestTaskQueueModel;
 import com.biplab.dholey.rmp.repositories.TableItemRepository;
 import com.biplab.dholey.rmp.transformers.RestaurantTableControllerAddTableRequestToTableItemTransformer;
 import com.biplab.dholey.rmp.transformers.TableItemToRestaurantTableControllerFetchTableStatusResponseTransformer;
@@ -25,7 +25,7 @@ import static org.springframework.transaction.annotation.Isolation.SERIALIZABLE;
 @Service
 public class RestaurantTableService {
 
-    private final TaskQueue tableCleaningTaskQueue = new TaskQueue("restaurant_table_cleaning_task_queue");
+    private final TaskQueue tableCleaningTaskQueue = new TaskQueue("restaurant_table_cleaning_task_queue",100);
     @Autowired
     private TableItemRepository tableItemRepository;
 

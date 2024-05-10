@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 public class RestaurantWaiterDaemon extends Thread {
 
 
-    private static final int MAX_NUMBER_OF_CHEF = 10;
+    private static final int MAX_NUMBER_OF_WORKERS = 10;
     private final RestaurantWaiterService restaurantWaiterService;
 
     @Autowired
@@ -24,7 +24,7 @@ public class RestaurantWaiterDaemon extends Thread {
 
     @Override
     public void run() {
-        ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_CHEF);
+        ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 restaurantWaiterService.serveReadyToServerFood();

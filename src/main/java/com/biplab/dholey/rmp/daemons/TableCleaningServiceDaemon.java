@@ -1,6 +1,8 @@
 package com.biplab.dholey.rmp.daemons;
 
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TableCleanRequestTaskQueueModel;
 import com.biplab.dholey.rmp.services.RestaurantTableService;
+import com.biplab.dholey.rmp.services.TableNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,22 +14,26 @@ import java.util.concurrent.TimeUnit;
 public class TableCleaningServiceDaemon extends Thread {
 
 
-    private static final int MAX_NUMBER_OF_CHEF = 10;
+    private static final int MAX_NUMBER_OF_WORKERS = 10;
     private final RestaurantTableService restaurantTableService;
 
+    private final TableNotificationService tableNotificationService;
+
     @Autowired
-    public TableCleaningServiceDaemon(RestaurantTableService restaurantTableService) {
+    public TableCleaningServiceDaemon(RestaurantTableService restaurantTableService, TableNotificationService tableNotificationService) {
         this.restaurantTableService = restaurantTableService;
+        this.tableNotificationService = tableNotificationService;
         setDaemon(true);
         start();
     }
 
     @Override
     public void run() {
-        ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_CHEF);
+        ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                restaurantTableService.popCleaningTableTask();
+                TableCleanRequestTaskQueueModel tableCleanRequestTaskQueueModel = restaurantTableService.popCleaningTableTask();
+                tableNotificationService.tableCleanedNotification(tableCleanRequestTaskQueueModel.getTableId());
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

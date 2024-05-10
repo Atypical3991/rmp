@@ -9,7 +9,7 @@ import com.biplab.dholey.rmp.models.db.BillItem;
 import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.OrderItem;
 import com.biplab.dholey.rmp.models.db.enums.BillItemStatusEnum;
-import com.biplab.dholey.rmp.models.util.GenerateBillTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.GenerateBillTaskQueueModel;
 import com.biplab.dholey.rmp.repositories.BillItemRepository;
 import com.biplab.dholey.rmp.util.TaskQueue;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ import java.util.Optional;
 @Service
 public class RestaurantBillService {
 
-    private final TaskQueue generateBillTaskQueue = new TaskQueue("restaurant_generate_bill_task_queue");
+    private final TaskQueue generateBillTaskQueue = new TaskQueue("restaurant_generate_bill_task_queue", 100);
 
     @Autowired
     private RestaurantOrderService restaurantOrderService;

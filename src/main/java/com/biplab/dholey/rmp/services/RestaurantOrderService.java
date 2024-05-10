@@ -9,7 +9,7 @@ import com.biplab.dholey.rmp.models.db.OrderItem;
 import com.biplab.dholey.rmp.models.db.TableBookedItem;
 import com.biplab.dholey.rmp.models.db.enums.BookedTableStatusEnum;
 import com.biplab.dholey.rmp.models.db.enums.OrderItemStatusEnum;
-import com.biplab.dholey.rmp.models.util.PrepareFoodTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.PrepareFoodTaskQueueModel;
 import com.biplab.dholey.rmp.repositories.OrderItemRepository;
 import com.biplab.dholey.rmp.util.TaskQueue;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,7 @@ public class RestaurantOrderService {
 
     private static final Long MAX_ORDER_QUEUED_COUNT = 50L;
     private static final Long MAX_ORDER_PER_REQUEST = 10L;
-    private final TaskQueue prepareFoodTaskQueue = new TaskQueue("prepare_food_task_queue");
+    private final TaskQueue prepareFoodTaskQueue = new TaskQueue("prepare_food_task_queue",100);
     @Autowired
     private OrderItemRepository orderItemRepository;
     @Autowired

@@ -35,4 +35,16 @@ public class TableBookedItem {
 
     private String notification;
 
+    private LocalDateTime placeOrderNotificationSentAt;
+
+    private int placeOrderNotificationSentCount;
+
+    private LocalDateTime generateBillNotificationSentAt;
+
+    private int generateBillNotificationSentCount;
+
+    private LocalDateTime makePaymentNotificationSentAt;
+
+    private int makePaymentNotificationSentCount;
+
 }

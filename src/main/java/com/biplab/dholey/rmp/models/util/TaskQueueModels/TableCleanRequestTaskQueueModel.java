@@ -1,4 +1,4 @@
-package com.biplab.dholey.rmp.models.util;
+package com.biplab.dholey.rmp.models.util.TaskQueueModels;
 
 import lombok.Data;
 
