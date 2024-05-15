@@ -62,57 +62,21 @@ public class RestaurantTableService {
         }
     }
 
-
-    @Transactional(isolation = SERIALIZABLE)
-    public BaseDBOperationsResponse bookTableByTableNumber(Long tableNumber) {
+    public TableItem fetchTableById(Long tableId) {
         try {
-            logger.info("bookTableByTableNumber called!!", "bookTableByTableNumber", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
-            TableItem tableItem = tableItemRepository.findByTableNumberAndStatus(tableNumber, TableItemStatusEnum.AVAILABLE);
-            if (tableItem == null) {
-                logger.info("tableItem  not found.", "bookTableByTableNumber", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
-                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("tableItem not found.");
+            Optional<TableItem> tableItemOpt = tableItemRepository.findById(tableId);
+            if (tableItemOpt.isEmpty()) {
+                logger.error("fetchTableById called!!", "fetchTableById", RestaurantTableService.class.toString(), new RuntimeException("Table not found."), Map.of("tableId", tableId.toString()));
+                return null;
             }
-            tableItem.setStatus(TableItemStatusEnum.BOOKED);
-            tableItemRepository.save(tableItem);
-            if (!restaurantTableBookService.createBookTableItem(tableItem.getId())) {
-                logger.error("createBookTableItem failed!!", "bookTableByTableNumber", RestaurantTableService.class.toString(), new RuntimeException("createBookTableItem call failed!!"), Map.of("tableNumber", tableNumber.toString()));
-                throw new RuntimeException("Table book item creation failed!! tableId: " + tableItem.getId());
-            }
-            logger.info("bookTableByTableNumber processed successfully!!", "bookTableByTableNumber", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
-            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "bookTableByTableNumber successfully processed.");
+            return tableItemOpt.get();
         } catch (Exception e) {
-            logger.error("Exception raised in bookTableByTableNumber.", "bookTableByTableNumber", RestaurantTableService.class.toString(), e, Map.of("tableNumber", tableNumber.toString()));
-            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
+            return null;
         }
     }
 
     @Transactional(isolation = SERIALIZABLE)
-    public BaseDBOperationsResponse bookTableByOccupancy(Long occupancy) {
-        try {
-            logger.info("bookTableByOccupancy called!!", "bookTableByOccupancy", RestaurantTableService.class.toString(), Map.of("occupancy", occupancy.toString()));
-            TableItem tableItem = tableItemRepository.findByOccupancyGreaterThanEqualAndStatusOrderByOccupancyDesc(occupancy, TableItemStatusEnum.AVAILABLE);
-            if (tableItem == null) {
-                logger.info("tableItem not found!!", "bookTableByOccupancy", RestaurantTableService.class.toString(), Map.of("occupancy", occupancy.toString()));
-                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("tableItem not found");
-            }
-            tableItem.setStatus(TableItemStatusEnum.BOOKED);
-            tableItemRepository.save(tableItem);
-
-            if (!restaurantTableBookService.createBookTableItem(tableItem.getId())) {
-                logger.error("createBookTableItem call failed!!", "bookTableByOccupancy", RestaurantTableService.class.toString(), new RuntimeException("createBookTableItem call failed!!"), Map.of("occupancy", occupancy.toString()));
-                throw new RuntimeException("Table book item creation failed!! tableId: " + tableItem.getId());
-            }
-            logger.info("bookTableByOccupancy processed successfully.", "bookTableByOccupancy", RestaurantTableService.class.toString(), Map.of("occupancy", occupancy.toString()));
-            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "bookTableByOccupancy processed successfully.");
-        } catch (Exception e) {
-            logger.error("Exception raised in bookTableByOccupancy!!", "bookTableByOccupancy", RestaurantTableService.class.toString(), e, Map.of("occupancy", occupancy.toString()));
-            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
-        }
-    }
-
-
-    @Transactional(isolation = SERIALIZABLE)
-    public BaseDBOperationsResponse bookTableByTableId(Long  tableId) {
+    public BaseDBOperationsResponse bookTableByTableId(Long tableId) {
         try {
             logger.info("bookTableByOccupancy called!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("findByIdAndStatus", tableId.toString()));
             TableItem tableItem = tableItemRepository.findByIdAndStatus(tableId, TableItemStatusEnum.AVAILABLE);

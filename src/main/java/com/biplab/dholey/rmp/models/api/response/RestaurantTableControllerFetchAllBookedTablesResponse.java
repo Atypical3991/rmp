@@ -13,22 +13,6 @@ public class RestaurantTableControllerFetchAllBookedTablesResponse extends BaseR
     @JsonProperty("data")
     private RestaurantTableControllerFetchAllBookedTablesResponseData data;
 
-    @Data
-    public static class RestaurantTableControllerFetchAllBookedTablesResponseData {
-        @JsonProperty("tablesList")
-        private List<TableItem> tablesList;
-
-    }
-
-    @Data
-    public static class TableItem{
-        @JsonProperty("tableNumber")
-        private Long tableNumber;
-
-        @JsonProperty("occupancy")
-        private Long occupancy;
-    }
-
     @Override
     public RestaurantTableControllerFetchAllBookedTablesResponse getInternalServerErrorResponse(String message, Exception e) {
         this.setMessage(message);
@@ -50,5 +34,21 @@ public class RestaurantTableControllerFetchAllBookedTablesResponse extends BaseR
         this.setMessage(message);
         this.setStatusCode(HttpStatus.OK.value());
         return this;
+    }
+
+    @Data
+    public static class RestaurantTableControllerFetchAllBookedTablesResponseData {
+        @JsonProperty("tablesList")
+        private List<TableItem> tablesList;
+
+    }
+
+    @Data
+    public static class TableItem {
+        @JsonProperty("tableNumber")
+        private Long tableNumber;
+
+        @JsonProperty("occupancy")
+        private Long occupancy;
     }
 }

@@ -2,7 +2,7 @@ package com.biplab.dholey.rmp.daemons;
 
 
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.PrepareFoodTaskQueueModel;
-import com.biplab.dholey.rmp.services.KitchenCookService;
+import com.biplab.dholey.rmp.services.RestaurantKitchenCookService;
 import com.biplab.dholey.rmp.util.CustomLogger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +19,13 @@ public class KitchenCookDaemon extends Thread {
     private static final int MAX_NUMBER_OF_WORKERS = 10;
     private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(KitchenCookDaemon.class));
     @Autowired
-    private KitchenCookService kitchenCookService;
+    private RestaurantKitchenCookService restaurantKitchenCookService;
 
 
     @Autowired
-    public KitchenCookDaemon(KitchenCookService kitchenCookService) {
+    public KitchenCookDaemon(RestaurantKitchenCookService restaurantKitchenCookService) {
         logger.info("KitchenCookDaemon constructor called!!", "Constructor", KitchenCookDaemon.class.toString(), null);
-        this.kitchenCookService = kitchenCookService;
+        this.restaurantKitchenCookService = restaurantKitchenCookService;
         setDaemon(true);
         start();
     }
@@ -35,10 +35,10 @@ public class KitchenCookDaemon extends Thread {
         ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                PrepareFoodTaskQueueModel queuedOrder = kitchenCookService.fetchAllOrdersToBeProcessed();
+                PrepareFoodTaskQueueModel queuedOrder = restaurantKitchenCookService.fetchAllOrdersToBeProcessed();
                 if (queuedOrder != null) {
                     logger.info("KitchenCookDaemon successfully received PrepareFoodTaskQueueModel task", "run", KitchenCookDaemon.class.toString(), Map.of("task", queuedOrder.toString()));
-                    executorService.submit(() -> kitchenCookService.processOrder(queuedOrder.getOrderId()));
+                    executorService.submit(() -> restaurantKitchenCookService.processOrder(queuedOrder.getOrderId()));
                     Thread.sleep(1000);
                     logger.info("KitchenCookDaemon successfully processed PrepareFoodTaskQueueModel task", "run", KitchenCookDaemon.class.toString(), Map.of("task", queuedOrder.toString()));
                 }

@@ -21,6 +21,8 @@ public class OrderItem {
 
     private Long tableItemId;
 
+    private boolean billGenerated = false;
+
     private LocalDateTime orderPlacedAt;
 
     private LocalDateTime orderServedAt;

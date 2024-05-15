@@ -31,16 +31,15 @@ public class RestaurantBillService {
     private final CustomTaskQueue generateBillCustomTaskQueue = new CustomTaskQueue("restaurant_generate_bill_task_queue", 100);
     private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(RestaurantBillService.class));
     @Autowired
+    RestaurantRecipeService restaurantRecipeService;
+    @Autowired
     private RestaurantOrderService restaurantOrderService;
     @Autowired
-    private FoodMenuService foodMenuService;
+    private RestaurantFoodMenuService restaurantFoodMenuService;
     @Autowired
     private BillItemRepository billItemRepository;
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
-
-    @Autowired
-    RestaurantRecipeService restaurantRecipeService;
 
     public BillItem getBillGeneratedBillItemById(Long billId) {
         logger.info("getBillGeneratedBillItemById called!!", "getBillGeneratedBillItemById", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
@@ -90,7 +89,7 @@ public class RestaurantBillService {
             List<OrderItem> orderItemsList = restaurantOrderService.fetchAllOrdersByOrderIds(orderItemsIds);
             BillItem billItem = new BillItem();
             for (OrderItem orderItem : orderItemsList) {
-                FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
+                FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
                 if (foodMenuItem == null) {
                     logger.info("foodMenuItem not found!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("orderItem", orderItem.toString()));
                     continue;
@@ -223,7 +222,7 @@ public class RestaurantBillService {
                 orderDetails.setOrderId(orderItem.getId());
                 orderDetails.setTotalPrice(orderItem.getTotalPrice());
 
-                FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
+                FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
                 if (foodMenuItem == null) {
                     logger.error("FoodMenuItem not found!!", "fetchBillDetailsById", RestaurantBillService.class.toString(), new RuntimeException("FoodMenuItem not found!!"), Map.of("billId", billId.toString(), "foodMenuItemId", orderItem.getFoodMenuItemId().toString()));
                     throw new RuntimeException("FoodMenuItem not found!!");

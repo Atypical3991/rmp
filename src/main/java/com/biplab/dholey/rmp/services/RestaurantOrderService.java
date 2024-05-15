@@ -33,7 +33,7 @@ public class RestaurantOrderService {
     @Autowired
     private OrderItemRepository orderItemRepository;
     @Autowired
-    private FoodMenuService foodMenuService;
+    private RestaurantFoodMenuService restaurantFoodMenuService;
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
 
@@ -88,7 +88,7 @@ public class RestaurantOrderService {
     public Boolean updateOrderStatusByListOfOrderIds(OrderItemStatusEnum statusEnum, List<Long> orderIds) {
         try {
             logger.info("updateOrderStatusByListOfOrderIds called!!", "updateOrderStatusByListOfOrderIds", RestaurantOrderService.class.toString(), Map.of("orderIds", orderIds.toString()));
-            orderItemRepository.updateOrderStatusByOrderIdsDBQuery(statusEnum,LocalDateTime.now(), orderIds);
+            orderItemRepository.updateOrderStatusByOrderIdsDBQuery(statusEnum, LocalDateTime.now(), orderIds);
             return true;
         } catch (Exception e) {
             logger.error("Exception raised in updateOrderStatusByListOfOrderIds!!", "updateOrderStatusByListOfOrderIds", RestaurantOrderService.class.toString(), e, Map.of("orderIds", orderIds.toString()));
@@ -111,6 +111,7 @@ public class RestaurantOrderService {
                 return false;
             }
             orderItemOpt.get().setStatus(OrderItemStatusEnum.BILL_GENERATED);
+            orderItemOpt.get().setBillGenerated(true);
             orderItemRepository.save(orderItemOpt.get());
             return true;
         } catch (Exception e) {
@@ -147,7 +148,7 @@ public class RestaurantOrderService {
 
             List<Long> orderIds = new ArrayList<>();
             for (RestaurantOrderControllerCreateOrderRequest.Order order : orderRequest.getOrderList()) {
-                FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(order.getFoodMenuItemId());
+                FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(order.getFoodMenuItemId());
                 if (foodMenuItem == null) {
                     return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("foodMenuItem not found for foodMenuItemId: " + order.getFoodMenuItemId());
                 }
@@ -157,7 +158,7 @@ public class RestaurantOrderService {
                 orderItem.setTableItemId(tableId);
                 orderItem.setStatus(OrderItemStatusEnum.QUEUED);
                 orderItem.setOrderPlacedAt(LocalDateTime.now());
-                orderItem.setTotalPrice(order.getQuantity()*foodMenuItem.getPrice());
+                orderItem.setTotalPrice(order.getQuantity() * foodMenuItem.getPrice());
                 orderItemRepository.save(orderItem);
                 orderIds.add(orderItem.getId());
 
@@ -209,10 +210,10 @@ public class RestaurantOrderService {
                 return new RestaurantOrderControllerCheckOrderStatusResponse().getNotFoundServerErrorResponse("Order item not found.");
             }
             OrderItem orderItem = orderItemOpt.get();
-            FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
-            if(foodMenuItem == null){
-                logger.error("FoodMenuItem not found!!","getOrderDetails",RestaurantOrderService.class.toString(),new RuntimeException("FoodMenuItem not found!!"),Map.of("foodMenuItem",orderItem.getFoodMenuItemId().toString(),"orderId",orderId.toString()));
-                throw  new RuntimeException("FoodMenuItem not found!!");
+            FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
+            if (foodMenuItem == null) {
+                logger.error("FoodMenuItem not found!!", "getOrderDetails", RestaurantOrderService.class.toString(), new RuntimeException("FoodMenuItem not found!!"), Map.of("foodMenuItem", orderItem.getFoodMenuItemId().toString(), "orderId", orderId.toString()));
+                throw new RuntimeException("FoodMenuItem not found!!");
             }
 
             RestaurantOrderControllerCheckOrderStatusResponse.RestaurantOrderControllerCheckOrderStatusResponseResponseData data = new RestaurantOrderControllerCheckOrderStatusResponse.RestaurantOrderControllerCheckOrderStatusResponseResponseData();
@@ -224,9 +225,9 @@ public class RestaurantOrderService {
 
 
             RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
-            if(recipeItem == null){
-                logger.error("RecipeItem not found!!","getOrderDetails",RestaurantOrderService.class.toString(),new RuntimeException("RecipeItem not found!!"),Map.of("recipeItemId",foodMenuItem.getRecipeItemId().toString(),"orderId",orderId.toString()));
-                throw  new RuntimeException("RecipeItem not found!!");
+            if (recipeItem == null) {
+                logger.error("RecipeItem not found!!", "getOrderDetails", RestaurantOrderService.class.toString(), new RuntimeException("RecipeItem not found!!"), Map.of("recipeItemId", foodMenuItem.getRecipeItemId().toString(), "orderId", orderId.toString()));
+                throw new RuntimeException("RecipeItem not found!!");
             }
             data.setFoodItemName(recipeItem.getName());
             logger.info("getOrderDetails successfully processed!!", "getOrderDetails", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
