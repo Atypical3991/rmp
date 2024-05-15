@@ -12,6 +12,29 @@ public class RestaurantBillControllerFetchBillDetailsByBillIdResponse extends Ba
     @JsonProperty("data")
     private RestaurantBillControllerFetchBillDetailsByBillIdResponseData data;
 
+    @Override
+    public RestaurantBillControllerFetchBillDetailsByBillIdResponse getInternalServerErrorResponse(String message, Exception e) {
+        this.setMessage(message);
+        this.setError(e.getMessage());
+        this.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return this;
+    }
+
+    @Override
+    public RestaurantBillControllerFetchBillDetailsByBillIdResponse getNotFoundServerErrorResponse(String message) {
+        this.setMessage(message);
+        this.setStatusCode(HttpStatus.NOT_FOUND.value());
+        return this;
+    }
+
+    @Override
+    public RestaurantBillControllerFetchBillDetailsByBillIdResponse getSuccessResponse(Object data, String message) {
+        this.setData((RestaurantBillControllerFetchBillDetailsByBillIdResponseData) data);
+        this.setMessage(message);
+        this.setStatusCode(HttpStatus.OK.value());
+        return this;
+    }
+
     @Data
     public static class RestaurantBillControllerFetchBillDetailsByBillIdResponseData {
 
@@ -37,29 +60,5 @@ public class RestaurantBillControllerFetchBillDetailsByBillIdResponse extends Ba
         private String foodItemName;
         @JsonProperty("totalPrice")
         private Double totalPrice;
-    }
-
-
-    @Override
-    public RestaurantBillControllerFetchBillDetailsByBillIdResponse getInternalServerErrorResponse(String message, Exception e) {
-        this.setMessage(message);
-        this.setError(e.getMessage());
-        this.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        return this;
-    }
-
-    @Override
-    public RestaurantBillControllerFetchBillDetailsByBillIdResponse getNotFoundServerErrorResponse(String message) {
-        this.setMessage(message);
-        this.setStatusCode(HttpStatus.NOT_FOUND.value());
-        return this;
-    }
-
-    @Override
-    public RestaurantBillControllerFetchBillDetailsByBillIdResponse getSuccessResponse(Object data, String message) {
-        this.setData((RestaurantBillControllerFetchBillDetailsByBillIdResponseData) data);
-        this.setMessage(message);
-        this.setStatusCode(HttpStatus.OK.value());
-        return this;
     }
 }
