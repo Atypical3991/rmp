@@ -4,6 +4,8 @@ import com.biplab.dholey.rmp.models.db.enums.OrderItemStatusEnum;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Data
 public class OrderItem {
@@ -15,9 +17,13 @@ public class OrderItem {
 
     private Long quantity;
 
+    private Double totalPrice;
+
     private Long tableItemId;
 
-    private Boolean billGenerated = false;
+    private LocalDateTime orderPlacedAt;
+
+    private LocalDateTime orderServedAt;
 
     @Enumerated(EnumType.STRING)
     private OrderItemStatusEnum status;

@@ -16,6 +16,8 @@ public class RestaurantWaiterService {
     private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(RestaurantWaiterService.class));
     @Autowired
     RestaurantOrderService restaurantOrderService;
+
+
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
 

@@ -21,17 +21,17 @@ public class RestaurantOrderController {
         return ResponseEntity.ok().body(restaurantOrderService.createOrder(createOrderRequest));
     }
 
-    @GetMapping("/order-status")
-    public ResponseEntity<RestaurantOrderControllerCheckOrderStatusResponse> checkOrderStatus(@RequestParam(value = "orderId") Long orderId) {
-        return ResponseEntity.ok().body(restaurantOrderService.getOrderStatus(orderId));
+    @GetMapping("/fetch-order-details-by-id")
+    public ResponseEntity<RestaurantOrderControllerCheckOrderStatusResponse> fetchOrderDetailsById(@RequestParam(value = "orderId") Long orderId) {
+        return ResponseEntity.ok().body(restaurantOrderService.getOrderDetails(orderId));
     }
 
-    @PutMapping("/delete-order")
-    public ResponseEntity<BaseDBOperationsResponse> deleteOrder(@RequestParam(value = "orderId") Long orderId) {
-        return ResponseEntity.ok().body(restaurantOrderService.deleteOrder(orderId));
+    @PutMapping("/cancel-order")
+    public ResponseEntity<BaseDBOperationsResponse> cancelOrder(@RequestParam(value = "orderId") Long orderId) {
+        return ResponseEntity.ok().body(restaurantOrderService.cancelOrder(orderId));
     }
 
-    @GetMapping("/fetch-active-orders-by-table-id")
+    @GetMapping("/fetch-all-orders-by-table-id")
     public ResponseEntity<RestaurantOrderControllerFetchAllOrdersByTableResponse> fetchAllOrdersByTableId(@RequestParam(value = "tableId") Long tableId) {
         return ResponseEntity.ok().body(restaurantOrderService.fetchAllOrdersByTableId(tableId));
     }

@@ -40,7 +40,7 @@ public class FoodMenuService {
             data.setMenuItems(new ArrayList<>());
             for (FoodMenuItem foodMenuItem : foodMenuItems) {
                 FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData.MenuItem menuItem = new FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData.MenuItem();
-                RecipeItem recipeItem = restaurantRecipeService.getRecipeItemById(foodMenuItem.getRecipeItemId());
+                RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
                 menuItem.setName(recipeItem.getName());
                 menuItem.setPrice(foodMenuItem.getPrice());
                 menuItem.setDescription(recipeItem.getDescription());

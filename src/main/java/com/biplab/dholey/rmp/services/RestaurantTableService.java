@@ -3,6 +3,7 @@ package com.biplab.dholey.rmp.services;
 import com.biplab.dholey.rmp.models.api.request.RestaurantTableControllerAddTableRequest;
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchAllAvailableTablesResponse;
+import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchAllBookedTablesResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchTableStatusResponse;
 import com.biplab.dholey.rmp.models.db.TableItem;
 import com.biplab.dholey.rmp.models.db.enums.TableItemStatusEnum;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -108,6 +110,31 @@ public class RestaurantTableService {
         }
     }
 
+
+    @Transactional(isolation = SERIALIZABLE)
+    public BaseDBOperationsResponse bookTableByTableId(Long  tableId) {
+        try {
+            logger.info("bookTableByOccupancy called!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("findByIdAndStatus", tableId.toString()));
+            TableItem tableItem = tableItemRepository.findByIdAndStatus(tableId, TableItemStatusEnum.AVAILABLE);
+            if (tableItem == null) {
+                logger.info("tableItem not found!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("findByIdAndStatus", tableId.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("tableItem not found");
+            }
+            tableItem.setStatus(TableItemStatusEnum.BOOKED);
+            tableItemRepository.save(tableItem);
+
+            if (!restaurantTableBookService.createBookTableItem(tableItem.getId())) {
+                logger.error("createBookTableItem call failed!!", "bookTableByTableId", RestaurantTableService.class.toString(), new RuntimeException("createBookTableItem call failed!!"), Map.of("tableId", tableId.toString()));
+                throw new RuntimeException("Table book item creation failed!! tableId: " + tableItem.getId());
+            }
+            logger.info("bookTableByOccupancy processed successfully.", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "bookTableByTableId processed successfully.");
+        } catch (Exception e) {
+            logger.error("Exception raised in bookTableByTableId!!", "bookTableByTableId", RestaurantTableService.class.toString(), e, Map.of("tableId", tableId.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
+        }
+    }
+
     @Transactional(isolation = SERIALIZABLE)
     public BaseDBOperationsResponse unBookTable(Long tableId) {
         try {
@@ -192,6 +219,31 @@ public class RestaurantTableService {
         } catch (Exception e) {
             logger.error("Exception raised in fetchAllTables!!", "fetchAllTables", RestaurantTableService.class.toString(), e, null);
             return new RestaurantTableControllerFetchAllAvailableTablesResponse().getInternalServerErrorResponse("Internal server error", e);
+        }
+    }
+
+
+    public RestaurantTableControllerFetchAllBookedTablesResponse fetchBookedTables() {
+        try {
+            logger.info("fetchBookedTables called!!", "fetchBookedTables", RestaurantTableService.class.toString(), null);
+            List<TableItem> tableItemsList = tableItemRepository.findAllByStatusIn(List.of(TableItemStatusEnum.BOOKED));
+            if (tableItemsList.isEmpty()) {
+                logger.info("No tableItem found!!", "fetchBookedTables", RestaurantTableService.class.toString(), null);
+                new RestaurantTableControllerFetchAllBookedTablesResponse().getNotFoundServerErrorResponse("Table item not found");
+            }
+            RestaurantTableControllerFetchAllBookedTablesResponse.RestaurantTableControllerFetchAllBookedTablesResponseData data = new RestaurantTableControllerFetchAllBookedTablesResponse.RestaurantTableControllerFetchAllBookedTablesResponseData();
+            data.setTablesList(new ArrayList<>());
+            for (TableItem tableItem : tableItemsList) {
+                RestaurantTableControllerFetchAllBookedTablesResponse.TableItem table = new RestaurantTableControllerFetchAllBookedTablesResponse.TableItem();
+                table.setTableNumber(tableItem.getTableNumber());
+                table.setOccupancy(tableItem.getOccupancy());
+                data.getTablesList().add(table);
+            }
+            logger.info("fetchBookedTables successfully!!", "fetchAllTables", RestaurantTableService.class.toString(), null);
+            return new RestaurantTableControllerFetchAllBookedTablesResponse().getSuccessResponse(data, "Booked tables fetched successfully.");
+        } catch (Exception e) {
+            logger.error("Exception raised in fetchAllTables!!", "fetchBookedTables", RestaurantTableService.class.toString(), e, null);
+            return new RestaurantTableControllerFetchAllBookedTablesResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 

@@ -30,7 +30,7 @@ public class RestaurantRecipeService {
     @Autowired
     private RecipeItemsToRestaurantRecipeControllerFetchAllRecipesResponseTransformer recipeItemsToRestaurantRecipeControllerFetchAllRecipesResponseTransformer;
 
-    public RecipeItem getRecipeItemById(Long recipeItemId) {
+    public RecipeItem fetchRecipeItemById(Long recipeItemId) {
         logger.info("getRecipeItemById called!!", "getRecipeItemById", RestaurantRecipeService.class.toString(), Map.of("recipeItemId", recipeItemId.toString()));
         Optional<RecipeItem> recipeItemOpt = recipeItemRepository.findById(recipeItemId);
         return recipeItemOpt.orElse(null);

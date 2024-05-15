@@ -9,6 +9,8 @@ import java.util.List;
 public interface TableItemRepository extends JpaRepository<TableItem, Long> {
     TableItem findByTableNumberAndStatus(Long tableNumber, TableItemStatusEnum status);
 
+    TableItem findByIdAndStatus(Long tableId, TableItemStatusEnum status);
+
     TableItem findByOccupancyGreaterThanEqualAndStatusOrderByOccupancyDesc(Long occupancy_from, TableItemStatusEnum status);
 
     List<TableItem> findAllByStatusIn(List<TableItemStatusEnum> statusEnumList);

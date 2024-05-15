@@ -6,9 +6,5 @@ public enum OrderItemStatusEnum {
     READY_TO_SERVE,
     SERVED,
     BILL_GENERATED,
-    PAYMENT_INITIATED,
-    PAYMENT_SUCCESS,
-    PAYMENT_FAILED,
-    COMPLETED,
-    DELETED
+    CANCELED
 }

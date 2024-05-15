@@ -36,6 +36,25 @@ public class RestaurantOrderControllerCheckOrderStatusResponse extends BaseRespo
     public static class RestaurantOrderControllerCheckOrderStatusResponseResponseData {
         @JsonProperty("orderStatus")
         private String status;
+
+        @JsonProperty("foodItemName")
+        private String foodItemName;
+
+        @JsonProperty("quantity")
+        private Long quantity;
+
+        //TDDO: Need to set the value
+        @JsonProperty("totalPrice")
+        private Double price;
+
+        //TDDO: Need to set the value
+        @JsonProperty("orderPlacedAt")
+        private String orderPlacedAt;
+
+        //TDDO: Need to set the value
+        @JsonProperty("orderServedAt")
+        private String orderServedAt;
+
     }
 
 }

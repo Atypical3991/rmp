@@ -6,6 +6,7 @@ import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerCheckO
 import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerFetchAllOrdersByTableResponse;
 import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.OrderItem;
+import com.biplab.dholey.rmp.models.db.RecipeItem;
 import com.biplab.dholey.rmp.models.db.TableBookedItem;
 import com.biplab.dholey.rmp.models.db.enums.BookedTableStatusEnum;
 import com.biplab.dholey.rmp.models.db.enums.OrderItemStatusEnum;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,9 @@ public class RestaurantOrderService {
     private FoodMenuService foodMenuService;
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
+
+    @Autowired
+    private RestaurantRecipeService restaurantRecipeService;
 
     public List<OrderItem> fetchAllOrdersByOrderIds(List<Long> orderIds) {
         logger.info("fetchAllOrdersByOrderIds called!!", "fetchAllOrdersByOrderIds", RestaurantOrderService.class.toString(), Map.of("orderIds", orderIds.toString()));
@@ -83,7 +88,7 @@ public class RestaurantOrderService {
     public Boolean updateOrderStatusByListOfOrderIds(OrderItemStatusEnum statusEnum, List<Long> orderIds) {
         try {
             logger.info("updateOrderStatusByListOfOrderIds called!!", "updateOrderStatusByListOfOrderIds", RestaurantOrderService.class.toString(), Map.of("orderIds", orderIds.toString()));
-            orderItemRepository.updateOrderStatusByOrderIdsDBQuery(statusEnum, orderIds);
+            orderItemRepository.updateOrderStatusByOrderIdsDBQuery(statusEnum,LocalDateTime.now(), orderIds);
             return true;
         } catch (Exception e) {
             logger.error("Exception raised in updateOrderStatusByListOfOrderIds!!", "updateOrderStatusByListOfOrderIds", RestaurantOrderService.class.toString(), e, Map.of("orderIds", orderIds.toString()));
@@ -105,7 +110,7 @@ public class RestaurantOrderService {
                 logger.error("Order item not found.", "updateBillGenerationStatus", RestaurantOrderService.class.toString(), new RuntimeException("Order item not found"), Map.of("orderId", orderId.toString()));
                 return false;
             }
-            orderItemOpt.get().setBillGenerated(true);
+            orderItemOpt.get().setStatus(OrderItemStatusEnum.BILL_GENERATED);
             orderItemRepository.save(orderItemOpt.get());
             return true;
         } catch (Exception e) {
@@ -151,6 +156,8 @@ public class RestaurantOrderService {
                 orderItem.setQuantity(order.getQuantity());
                 orderItem.setTableItemId(tableId);
                 orderItem.setStatus(OrderItemStatusEnum.QUEUED);
+                orderItem.setOrderPlacedAt(LocalDateTime.now());
+                orderItem.setTotalPrice(order.getQuantity()*foodMenuItem.getPrice());
                 orderItemRepository.save(orderItem);
                 orderIds.add(orderItem.getId());
 
@@ -193,7 +200,45 @@ public class RestaurantOrderService {
         }
     }
 
-    public BaseDBOperationsResponse deleteOrder(Long orderId) {
+
+    public RestaurantOrderControllerCheckOrderStatusResponse getOrderDetails(Long orderId) {
+        try {
+            logger.info("getOrderDetails called!!", "getOrderDetails", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
+            Optional<OrderItem> orderItemOpt = orderItemRepository.findById(orderId);
+            if (orderItemOpt.isEmpty()) {
+                return new RestaurantOrderControllerCheckOrderStatusResponse().getNotFoundServerErrorResponse("Order item not found.");
+            }
+            OrderItem orderItem = orderItemOpt.get();
+            FoodMenuItem foodMenuItem = foodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
+            if(foodMenuItem == null){
+                logger.error("FoodMenuItem not found!!","getOrderDetails",RestaurantOrderService.class.toString(),new RuntimeException("FoodMenuItem not found!!"),Map.of("foodMenuItem",orderItem.getFoodMenuItemId().toString(),"orderId",orderId.toString()));
+                throw  new RuntimeException("FoodMenuItem not found!!");
+            }
+
+            RestaurantOrderControllerCheckOrderStatusResponse.RestaurantOrderControllerCheckOrderStatusResponseResponseData data = new RestaurantOrderControllerCheckOrderStatusResponse.RestaurantOrderControllerCheckOrderStatusResponseResponseData();
+            data.setStatus(orderItem.getStatus().name());
+            data.setOrderPlacedAt(orderItem.getOrderPlacedAt().toString());
+            data.setOrderServedAt(orderItem.getOrderServedAt().toString());
+            data.setPrice(orderItem.getTotalPrice());
+            data.setQuantity(orderItem.getQuantity());
+
+
+            RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
+            if(recipeItem == null){
+                logger.error("RecipeItem not found!!","getOrderDetails",RestaurantOrderService.class.toString(),new RuntimeException("RecipeItem not found!!"),Map.of("recipeItemId",foodMenuItem.getRecipeItemId().toString(),"orderId",orderId.toString()));
+                throw  new RuntimeException("RecipeItem not found!!");
+            }
+            data.setFoodItemName(recipeItem.getName());
+            logger.info("getOrderDetails successfully processed!!", "getOrderDetails", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
+            return new RestaurantOrderControllerCheckOrderStatusResponse().getSuccessResponse(data, "getOrderDetails successfully processed.");
+        } catch (Exception e) {
+            logger.error("Exception raised in getOrderDetails!!", "getOrderDetails", RestaurantOrderService.class.toString(), e, Map.of("orderId", orderId.toString()));
+            return new RestaurantOrderControllerCheckOrderStatusResponse().getInternalServerErrorResponse("Internal server error", e);
+        }
+    }
+
+
+    public BaseDBOperationsResponse cancelOrder(Long orderId) {
         try {
             logger.info("deleteOrder called!!", "deleteOrder", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
             Optional<OrderItem> orderItemOpt = orderItemRepository.findById(orderId);
@@ -206,7 +251,7 @@ public class RestaurantOrderService {
                 return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Order can't be deleted as Order not in QUEUED state anymore.");
             }
             OrderItem orderItem = orderItemOpt.get();
-            orderItem.setStatus(OrderItemStatusEnum.DELETED);
+            orderItem.setStatus(OrderItemStatusEnum.CANCELED);
             orderItemRepository.save(orderItem);
             logger.info("deleteOrder successfully processed!!", "deleteOrder", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
             return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "deleteOrder successfully processed.");

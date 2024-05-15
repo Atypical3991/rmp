@@ -5,6 +5,7 @@ import com.biplab.dholey.rmp.models.db.enums.OrderItemStatusEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
@@ -24,6 +25,6 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     List<OrderItem> findAllByTableItemId(Long tableItemId);
 
 
-    @Query(value = "UPDATE order_item SET status = :status  WHERE id in :ids", nativeQuery = true)
-    void updateOrderStatusByOrderIdsDBQuery(OrderItemStatusEnum status, List<Long> ids);
+    @Query(value = "UPDATE order_item SET status = :status, orderServedAt=:orderServedAt  WHERE id in :ids", nativeQuery = true)
+    void updateOrderStatusByOrderIdsDBQuery(OrderItemStatusEnum status, LocalDateTime orderServedAt, List<Long> ids);
 }

@@ -39,7 +39,7 @@ public class KitchenCookService {
                 if (foodMenuItem == null) {
                     throw new RuntimeException("foodMenuItem not found");
                 }
-                RecipeItem recipeItem = restaurantRecipeService.getRecipeItemById(foodMenuItem.getRecipeItemId());
+                RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
                 try {
                     Thread.sleep(recipeItem.getEstimatedTimeInMinutes() * 60 * 1000);
                 } catch (Exception e) {
@@ -58,13 +58,13 @@ public class KitchenCookService {
                 if (foodMenuItem == null) {
                     throw new RuntimeException("foodMenuItem not found");
                 }
-                RecipeItem recipeItem = restaurantRecipeService.getRecipeItemById(foodMenuItem.getRecipeItemId());
+                RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
                 try {
                     Thread.sleep(recipeItem.getEstimatedTimeInMinutes() * 60 * 1000);
                 } catch (Exception e) {
                     logger.error("Exception raised inside QUEUED block!!", "processOrder", KitchenCookService.class.toString(), e, null);
                 }
-                if (restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.READY_TO_SERVE)) {
+                if (restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.PICKED_BY_COOK)) {
                     throw new RuntimeException("updateOrderStatus failed!!");
                 }
                 logger.info("processOrder called successfully resolved!!", "processOrder", KitchenCookService.class.toString(), null);
