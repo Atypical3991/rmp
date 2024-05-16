@@ -40,10 +40,9 @@ public class RestaurantFoodMenuService {
             data.setMenuItems(new ArrayList<>());
             for (FoodMenuItem foodMenuItem : foodMenuItems) {
                 FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData.MenuItem menuItem = new FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData.MenuItem();
-                RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
-                menuItem.setName(recipeItem.getName());
+                menuItem.setName(foodMenuItem.getName());
                 menuItem.setPrice(foodMenuItem.getPrice());
-                menuItem.setDescription(recipeItem.getDescription());
+                menuItem.setDescription(foodMenuItem.getDescription());
                 data.getMenuItems().add(menuItem);
             }
             logger.info("fetchFoodMenuItem processed successfully!!", "fetchFoodMenuItem", RestaurantFoodMenuService.class.toString(), null);
@@ -63,12 +62,21 @@ public class RestaurantFoodMenuService {
                 logger.info("foodMenuItem not found!!", "addFoodMenuItem", RestaurantFoodMenuService.class.toString(), Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
                 return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("FoodMenuItem not found for recipeItemId: " + recipeItemId);
             }
+
+            RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(recipeItemId);
+            if (recipeItem == null) {
+                logger.error("RecipeItem not found!!", "addFoodMenuItem", RestaurantFoodMenuService.class.toString(), new RuntimeException("RecipeItem not found!!"), Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
+                throw new RuntimeException("RecipeItem not found!!");
+            }
+
             FoodMenuItem newFoodMenuItem = new FoodMenuItem();
             newFoodMenuItem.setRecipeItemId(recipeItemId);
             newFoodMenuItem.setPrice(addMenuItemRequest.getPrice());
+            newFoodMenuItem.setName(recipeItem.getName());
+            newFoodMenuItem.setDescription(recipeItem.getDescription());
             foodMenuItemRepository.save(newFoodMenuItem);
             logger.info("addFoodMenuItem  processed successfully!!", "addFoodMenuItem", RestaurantFoodMenuService.class.toString(), Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
-            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Removed food menu successfully.");
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Food menu item added successfully.");
         } catch (Exception e) {
             logger.error("Exception raised in addFoodMenuItem!!", "addFoodMenuItem", RestaurantFoodMenuService.class.toString(), e, Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
             return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
@@ -104,6 +112,12 @@ public class RestaurantFoodMenuService {
             FoodMenuItem foodMenuItem = foodMenuItemOpt.get();
             if (modifyFoodMenuItemRequest.getPrice() != null) {
                 foodMenuItem.setPrice(modifyFoodMenuItemRequest.getPrice());
+            }
+            if (modifyFoodMenuItemRequest.getDescription() != null) {
+                foodMenuItem.setDescription(modifyFoodMenuItemRequest.getDescription());
+            }
+            if (modifyFoodMenuItemRequest.getName() != null) {
+                foodMenuItem.setName(modifyFoodMenuItemRequest.getName());
             }
             foodMenuItemRepository.save(foodMenuItem);
             logger.info("modifyFoodMenuItem processed successfully!!", "modifyFoodMenuItem", RestaurantFoodMenuService.class.toString(), Map.of("modifyFoodMenuItemRequest", modifyFoodMenuItemRequest.toString()));

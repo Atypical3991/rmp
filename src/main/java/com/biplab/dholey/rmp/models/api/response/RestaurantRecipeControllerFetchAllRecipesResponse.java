@@ -42,6 +42,8 @@ public class RestaurantRecipeControllerFetchAllRecipesResponse extends BaseRespo
 
         @Data
         public static class Recipe {
+            @JsonProperty("recipeId")
+            private Long recipeId;
             @JsonProperty("name")
             private String name;
             @JsonProperty("description")

@@ -5,7 +5,10 @@ import com.biplab.dholey.rmp.models.api.request.RestaurantCartControllerAddItemR
 import com.biplab.dholey.rmp.models.api.request.RestaurantCartControllerRemoveItemRequest;
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantCartControllerFetchActiveCartItemsByTableIdResponse;
-import com.biplab.dholey.rmp.models.db.*;
+import com.biplab.dholey.rmp.models.db.CartElementItem;
+import com.biplab.dholey.rmp.models.db.CartItem;
+import com.biplab.dholey.rmp.models.db.FoodMenuItem;
+import com.biplab.dholey.rmp.models.db.TableItem;
 import com.biplab.dholey.rmp.models.db.enums.CartItemStatusEnum;
 import com.biplab.dholey.rmp.models.db.enums.TableItemStatusEnum;
 import com.biplab.dholey.rmp.repositories.CartElementItemRepository;
@@ -34,8 +37,6 @@ public class RestaurantCartService {
     private CartItemRepository cartItemRepository;
     @Autowired
     private RestaurantFoodMenuService restaurantFoodMenuService;
-    @Autowired
-    private RestaurantRecipeService restaurantRecipeService;
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public BaseDBOperationsResponse addFoodItemIntoCart(RestaurantCartControllerAddItemRequest restaurantCartControllerAddItemRequest) {
@@ -196,12 +197,7 @@ public class RestaurantCartService {
                 }
                 foodItem.setFoodItemPrice(foodMenuItem.getPrice());
                 foodItem.setQuantity(cartElementItem.getQuantity());
-                RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
-                if (recipeItem == null) {
-                    logger.error("RecipeItem not found!!", "fetchActiveCartItemsByTableId", RestaurantCartService.class.toString(), new RuntimeException("RecipeItem not found!!"), Map.of("tableId", tableId.toString(), "recipeItemId", foodMenuItem.getRecipeItemId().toString()));
-                    throw new RuntimeException("RecipeItem not found!!");
-                }
-                foodItem.setFoodItemName(recipeItem.getName());
+                foodItem.setFoodItemName(foodMenuItem.getName());
                 data.getFoodItemList().add(foodItem);
             }
             return new RestaurantCartControllerFetchActiveCartItemsByTableIdResponse().getSuccessResponse(data, "fetchActiveCartItemsByTableId processed successfully!!");

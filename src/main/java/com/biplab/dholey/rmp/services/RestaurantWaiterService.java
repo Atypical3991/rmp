@@ -17,7 +17,6 @@ public class RestaurantWaiterService {
     @Autowired
     RestaurantOrderService restaurantOrderService;
 
-
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
 

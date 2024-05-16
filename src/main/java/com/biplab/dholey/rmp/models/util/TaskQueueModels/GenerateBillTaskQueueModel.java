@@ -3,10 +3,13 @@ package com.biplab.dholey.rmp.models.util.TaskQueueModels;
 
 import lombok.Data;
 
-import java.util.List;
-
 @Data
-public class GenerateBillTaskQueueModel {
-    List<Long> orderItemIds;
+public class GenerateBillTaskQueueModel implements TaskQueueInterface {
+    Long billItemId;
     Long tableId;
+
+    public GenerateBillTaskQueueModel(Long billItemId, Long tableId) {
+        this.billItemId = billItemId;
+        this.tableId = tableId;
+    }
 }

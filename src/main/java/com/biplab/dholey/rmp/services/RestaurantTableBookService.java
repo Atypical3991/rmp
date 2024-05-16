@@ -114,8 +114,8 @@ public class RestaurantTableBookService {
         try {
             logger.info("updateUnBookStatus called!!", "updateUnBookStatus", RestaurantTableBookService.class.toString(), Map.of("tableId", tableId.toString()));
             TableBookedItem tableBookedItem = tableBookRepository.findByTableId(tableId);
-            if (tableBookedItem.getStatus() != BookedTableStatusEnum.READY_TO_BE_UN_BOOKED) {
-                throw new RuntimeException("Table can't be un-booked, as table with tableId:" + tableId + " not in " + BookedTableStatusEnum.READY_TO_BE_UN_BOOKED.name() + " state.");
+            if (tableBookedItem == null) {
+                throw new RuntimeException("TableBookedItem not found!!");
             }
             tableBookedItem.setTableUnBookedAt(LocalDateTime.now());
             tableBookedItem.setStatus(BookedTableStatusEnum.UN_BOOKED);
@@ -127,5 +127,52 @@ public class RestaurantTableBookService {
         }
 
     }
+
+    public TableBookedItem fetchByTableId(Long tableId) {
+        try {
+            logger.info("fetchByTableId called!!", "fetchByTableId", RestaurantTableBookService.class.toString(), Map.of("tableId", tableId.toString()));
+            TableBookedItem tableBookedItem = tableBookRepository.findByTableId(tableId);
+            if (tableBookedItem == null) {
+                throw new RuntimeException("tableBookedItem not found");
+            }
+            return tableBookedItem;
+        } catch (Exception e) {
+            logger.error("Exception raised in fetchByTableId!!", "fetchByTableId", RestaurantTableBookService.class.toString(), e, Map.of("tableId", tableId.toString()));
+            return null;
+        }
+    }
+
+    public boolean updateTableCleanRequestQueueStatus(Long tableId) {
+        try {
+            logger.info("updateTableCleanRequestQueueStatus called!!", "updateTableCleanRequestQueueStatus", RestaurantTableBookService.class.toString(), Map.of("tableId", tableId.toString()));
+            TableBookedItem tableBookedItem = tableBookRepository.findByTableId(tableId);
+            if (tableBookedItem == null) {
+                throw new RuntimeException("tableBookedItem not found");
+            }
+            tableBookedItem.setStatus(BookedTableStatusEnum.CLEAN_TABLE_REQUEST_QUEUED);
+            tableBookRepository.save(tableBookedItem);
+            return true;
+        } catch (Exception e) {
+            logger.error("Exception raised in fetchByTableId!!", "fetchByTableId", RestaurantTableBookService.class.toString(), e, Map.of("tableId", tableId.toString()));
+            return false;
+        }
+    }
+
+    public boolean updateTableCleanSuccessStatus(Long tableId) {
+        try {
+            logger.info("updateTableCleanSuccessStatus called!!", "updateTableCleanSuccessStatus", RestaurantTableBookService.class.toString(), Map.of("tableId", tableId.toString()));
+            TableBookedItem tableBookedItem = tableBookRepository.findByTableId(tableId);
+            if (tableBookedItem == null) {
+                throw new RuntimeException("tableBookedItem not found");
+            }
+            tableBookedItem.setStatus(BookedTableStatusEnum.BOOKED);
+            tableBookRepository.save(tableBookedItem);
+            return true;
+        } catch (Exception e) {
+            logger.error("Exception raised in fetchByTableId!!", "fetchByTableId", RestaurantTableBookService.class.toString(), e, Map.of("tableId", tableId.toString()));
+            return false;
+        }
+    }
+
 
 }

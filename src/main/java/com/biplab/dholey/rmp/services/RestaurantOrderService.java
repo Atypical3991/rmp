@@ -6,7 +6,6 @@ import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerCheckO
 import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerFetchAllOrdersByTableResponse;
 import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.OrderItem;
-import com.biplab.dholey.rmp.models.db.RecipeItem;
 import com.biplab.dholey.rmp.models.db.TableBookedItem;
 import com.biplab.dholey.rmp.models.db.enums.BookedTableStatusEnum;
 import com.biplab.dholey.rmp.models.db.enums.OrderItemStatusEnum;
@@ -36,9 +35,6 @@ public class RestaurantOrderService {
     private RestaurantFoodMenuService restaurantFoodMenuService;
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
-
-    @Autowired
-    private RestaurantRecipeService restaurantRecipeService;
 
     public List<OrderItem> fetchAllOrdersByOrderIds(List<Long> orderIds) {
         logger.info("fetchAllOrdersByOrderIds called!!", "fetchAllOrdersByOrderIds", RestaurantOrderService.class.toString(), Map.of("orderIds", orderIds.toString()));
@@ -135,6 +131,8 @@ public class RestaurantOrderService {
                 logger.info("orders per request reached max threshold!!", "createOrder", RestaurantOrderService.class.toString(), Map.of("orderRequest", orderRequest.toString()));
                 return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Can't take more than " + MAX_ORDER_PER_REQUEST + " orders.");
             }
+
+
             Long tableId = orderRequest.getTableId();
             TableBookedItem tableBookedItem = restaurantTableBookService.getTableBookedItemByTableId(tableId);
             if (tableBookedItem == null) {
@@ -162,11 +160,14 @@ public class RestaurantOrderService {
                 orderItemRepository.save(orderItem);
                 orderIds.add(orderItem.getId());
 
+                try {
+                    if (!prepareFoodCustomTaskQueue.pushTask(new PrepareFoodTaskQueueModel(orderItem.getId(), orderItem.getTableItemId()))) {
+                        logger.error("prepareFoodCustomTaskQueue task push failed!!", "createOrder", RestaurantOrderService.class.toString(), new RuntimeException("prepareFoodCustomTaskQueue task push failed!!"), Map.of("orderRequest", orderRequest.toString()));
+                    }
+                } catch (Exception e) {
+                    logger.error("prepareFoodCustomTaskQueue task push failed!!", "createOrder", RestaurantOrderService.class.toString(), e, Map.of("orderRequest", orderRequest.toString()));
+                }
 
-                PrepareFoodTaskQueueModel prepareFoodTaskQueueModel = new PrepareFoodTaskQueueModel();
-                prepareFoodTaskQueueModel.setOrderId(orderItem.getId());
-                prepareFoodTaskQueueModel.setTableId(orderItem.getTableItemId());
-                prepareFoodCustomTaskQueue.pushTask(prepareFoodTaskQueueModel);
             }
             if (!restaurantTableBookService.updateLastOrderPlacedAt(tableId)) {
                 throw new RuntimeException("updateLastOrderPlacedAt failed.");
@@ -178,6 +179,7 @@ public class RestaurantOrderService {
             logger.info("createOrder successfully processed!!", "createOrder", RestaurantOrderService.class.toString(), Map.of("orderRequest", orderRequest.toString()));
             return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Orders successfully placed.");
         } catch (Exception e) {
+            logger.error("Exception raised in createOrder.", "createOrder", RestaurantOrderService.class.toString(), e, Map.of("orderRequest", orderRequest.toString()));
             return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error.", e);
         }
 
@@ -223,13 +225,7 @@ public class RestaurantOrderService {
             data.setPrice(orderItem.getTotalPrice());
             data.setQuantity(orderItem.getQuantity());
 
-
-            RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
-            if (recipeItem == null) {
-                logger.error("RecipeItem not found!!", "getOrderDetails", RestaurantOrderService.class.toString(), new RuntimeException("RecipeItem not found!!"), Map.of("recipeItemId", foodMenuItem.getRecipeItemId().toString(), "orderId", orderId.toString()));
-                throw new RuntimeException("RecipeItem not found!!");
-            }
-            data.setFoodItemName(recipeItem.getName());
+            data.setFoodItemName(foodMenuItem.getName());
             logger.info("getOrderDetails successfully processed!!", "getOrderDetails", RestaurantOrderService.class.toString(), Map.of("orderId", orderId.toString()));
             return new RestaurantOrderControllerCheckOrderStatusResponse().getSuccessResponse(data, "getOrderDetails successfully processed.");
         } catch (Exception e) {

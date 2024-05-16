@@ -18,7 +18,7 @@ public class RestaurantTableController {
 
     @GetMapping("/fetch-available-tables")
     public ResponseEntity<RestaurantTableControllerFetchAllAvailableTablesResponse> fetchAvailableTables() {
-        return ResponseEntity.ok().body(restaurantTableService.fetchAllTables());
+        return ResponseEntity.ok().body(restaurantTableService.fetchAllAvailableTables());
     }
 
     @GetMapping("/fetch-booked-tables")
@@ -42,13 +42,13 @@ public class RestaurantTableController {
     }
 
     @PutMapping("/remove-table")
-    public ResponseEntity<BaseDBOperationsResponse> removeTable(@RequestParam(value = "tableNumber") Long tableNumber) {
-        return ResponseEntity.ok().body(restaurantTableService.removeTable(tableNumber));
+    public ResponseEntity<BaseDBOperationsResponse> removeTable(@RequestParam(value = "tableId") Long tableId) {
+        return ResponseEntity.ok().body(restaurantTableService.removeTable(tableId));
     }
 
     @PutMapping("/clean-table")
     public ResponseEntity<BaseDBOperationsResponse> cleanTable(@RequestParam(value = "tableId") Long tableId) {
-        return ResponseEntity.ok().body(restaurantTableService.unBookTable(tableId));
+        return ResponseEntity.ok().body(restaurantTableService.cleanTable(tableId));
     }
 
 }

@@ -4,7 +4,6 @@ import com.biplab.dholey.rmp.models.api.request.RestaurantTableControllerAddTabl
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchAllAvailableTablesResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchAllBookedTablesResponse;
-import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchTableStatusResponse;
 import com.biplab.dholey.rmp.models.db.TableItem;
 import com.biplab.dholey.rmp.models.db.enums.TableItemStatusEnum;
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.TableCleanRequestTaskQueueModel;
@@ -17,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -75,14 +73,19 @@ public class RestaurantTableService {
         }
     }
 
+
     @Transactional(isolation = SERIALIZABLE)
     public BaseDBOperationsResponse bookTableByTableId(Long tableId) {
         try {
-            logger.info("bookTableByOccupancy called!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("findByIdAndStatus", tableId.toString()));
+            logger.info("bookTableByOccupancy called!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
             TableItem tableItem = tableItemRepository.findByIdAndStatus(tableId, TableItemStatusEnum.AVAILABLE);
             if (tableItem == null) {
-                logger.info("tableItem not found!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("findByIdAndStatus", tableId.toString()));
+                logger.info("tableItem not found!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
                 return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("tableItem not found");
+            }
+            if (tableItem.getStatus() == TableItemStatusEnum.BOOKED) {
+                logger.info("tableItem is in Booked state!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("tableItem is in Booked state!!");
             }
             tableItem.setStatus(TableItemStatusEnum.BOOKED);
             tableItemRepository.save(tableItem);
@@ -129,59 +132,68 @@ public class RestaurantTableService {
     }
 
     @Transactional(isolation = SERIALIZABLE)
-    public BaseDBOperationsResponse removeTable(Long tableNumber) {
+    public BaseDBOperationsResponse removeTable(Long tableId) {
         try {
-            logger.info("removeTable called!!", "removeTable", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
-            TableItem tableItem = tableItemRepository.findByTableNumberAndStatus(tableNumber, TableItemStatusEnum.AVAILABLE);
+            logger.info("removeTable called!!", "removeTable", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
+            TableItem tableItem = tableItemRepository.findByIdAndStatus(tableId, TableItemStatusEnum.AVAILABLE);
             if (tableItem == null) {
-                logger.info("tableItem not found!!", "removeTable", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
+                logger.info("tableItem not found!!", "removeTable", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
                 return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("tableItem not found.");
+            }
+            if (tableItem.getStatus() != TableItemStatusEnum.AVAILABLE) {
+                logger.info("tableItem still in Booked state!!", "removeTable", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("tableItem still in Booked state.");
             }
             tableItem.setStatus(TableItemStatusEnum.REMOVED);
             tableItemRepository.save(tableItem);
-            logger.info("removeTable processed successfully!!", "removeTable", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
+            logger.info("removeTable processed successfully!!", "removeTable", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
             return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "removeTable processed successfully");
         } catch (Exception e) {
-            logger.error("Exception raised in removeTable!!", "removeTable", RestaurantTableService.class.toString(), e, Map.of("tableNumber", tableNumber.toString()));
+            logger.error("Exception raised in removeTable!!", "removeTable", RestaurantTableService.class.toString(), e, Map.of("tableId", tableId.toString()));
             return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
-    public RestaurantTableControllerFetchTableStatusResponse fetchTableStatus(Long tableNumber) {
+    public BaseDBOperationsResponse cleanTable(Long tableId) {
         try {
-            logger.info("fetchTableStatus called successfully!!", "fetchTableStatus", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
-            TableItem tableItem = tableItemRepository.findByTableNumberAndStatus(tableNumber, TableItemStatusEnum.AVAILABLE);
+            logger.info("cleanTable called!!", "cleanTable", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
+            TableItem tableItem = tableItemRepository.findByIdAndStatus(tableId, TableItemStatusEnum.BOOKED);
             if (tableItem == null) {
-                logger.info("tableItem not found!!", "fetchTableStatus", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
-                return new RestaurantTableControllerFetchTableStatusResponse().getNotFoundServerErrorResponse("tableItem not found");
+                logger.info("tableItem not found!!", "cleanTable", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("tableItem not found.");
             }
-            TableItemStatusEnum tableItemStatusEnum = tableItem.getStatus();
-            RestaurantTableControllerFetchTableStatusResponse.RestaurantTableControllerFetchTableStatusResponseResponseData data = new RestaurantTableControllerFetchTableStatusResponse.RestaurantTableControllerFetchTableStatusResponseResponseData();
-            data.setStatus(tableItemStatusEnum.name());
-            logger.info("fetchTableStatus processed successfully!!", "fetchTableStatus", RestaurantTableService.class.toString(), Map.of("tableNumber", tableNumber.toString()));
-            return new RestaurantTableControllerFetchTableStatusResponse().getSuccessResponse(data, "fetchTableStatus processed successfully");
 
+            if (!restaurantTableBookService.updateTableCleanRequestQueueStatus(tableId)) {
+                throw new RuntimeException("updateTableCleanRequestQueueStatus call failed!!");
+            }
+            try {
+                if (!tableCleaningCustomTaskQueue.pushTask(new TableCleanRequestTaskQueueModel(tableId))) {
+                    logger.error("tableCleaningCustomTaskQueue task push failed!!", "cleanTable", RestaurantTableService.class.toString(), new RuntimeException("tableCleaningCustomTaskQueue task push failed."), Map.of("tableId", tableId.toString()));
+                }
+            } catch (Exception e) {
+                logger.error("tableCleaningCustomTaskQueue task push failed!!", "cleanTable", RestaurantTableService.class.toString(), new RuntimeException("tableCleaningCustomTaskQueue task push failed."), Map.of("tableId", tableId.toString()));
+            }
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "cleanTable processed successfully!!");
         } catch (Exception e) {
-            logger.error("Exception raised in fetchTableStatus!!", "fetchTableStatus", RestaurantTableService.class.toString(), e, Map.of("tableNumber", tableNumber.toString()));
-            return new RestaurantTableControllerFetchTableStatusResponse().getInternalServerErrorResponse("Internal server error", e);
+            logger.error("cleanTable call failed!!", "cleanTable", RestaurantTableService.class.toString(), e, Map.of("tableId", tableId.toString()));
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }
 
-    public RestaurantTableControllerFetchAllAvailableTablesResponse fetchAllTables() {
+    public RestaurantTableControllerFetchAllAvailableTablesResponse fetchAllAvailableTables() {
         try {
-            logger.info("fetchAllTables called!!", "fetchAllTables", RestaurantTableService.class.toString(), null);
+            logger.info("fetchAllAvailableTables called!!", "fetchAllAvailableTables", RestaurantTableService.class.toString(), null);
             List<TableItem> tableItemsList = tableItemRepository.findAllByStatusIn(List.of(TableItemStatusEnum.AVAILABLE));
             if (tableItemsList.isEmpty()) {
-                logger.info("No tableItem found!!", "fetchAllTables", RestaurantTableService.class.toString(), null);
+                logger.info("No tableItem found!!", "fetchAllAvailableTables", RestaurantTableService.class.toString(), null);
                 new RestaurantTableControllerFetchAllAvailableTablesResponse().getNotFoundServerErrorResponse("Table item not found");
             }
             RestaurantTableControllerFetchAllAvailableTablesResponse response = tableItemToRestaurantTableControllerFetchTableStatusResponseTransformer.transform(tableItemsList);
             response.setStatusCode(HttpStatus.OK.value());
-            logger.info("fetchAllTables successfully!!", "fetchAllTables", RestaurantTableService.class.toString(), null);
+            logger.info("fetchAllAvailableTables successfully!!", "fetchAllAvailableTables", RestaurantTableService.class.toString(), null);
             return response;
         } catch (Exception e) {
-            logger.error("Exception raised in fetchAllTables!!", "fetchAllTables", RestaurantTableService.class.toString(), e, null);
+            logger.error("Exception raised in fetchAllTables!!", "fetchAllAvailableTables", RestaurantTableService.class.toString(), e, null);
             return new RestaurantTableControllerFetchAllAvailableTablesResponse().getInternalServerErrorResponse("Internal server error", e);
         }
     }

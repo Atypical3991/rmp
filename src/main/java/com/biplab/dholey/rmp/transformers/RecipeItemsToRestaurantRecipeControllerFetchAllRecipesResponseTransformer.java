@@ -16,6 +16,7 @@ public class RecipeItemsToRestaurantRecipeControllerFetchAllRecipesResponseTrans
         List<RestaurantRecipeControllerFetchAllRecipesResponse.RestaurantRecipeControllerFetchAllRecipesResponseResponseData.Recipe> recipes = new ArrayList<>();
         for (RecipeItem recipeItem : source) {
             RestaurantRecipeControllerFetchAllRecipesResponse.RestaurantRecipeControllerFetchAllRecipesResponseResponseData.Recipe recipe = new RestaurantRecipeControllerFetchAllRecipesResponse.RestaurantRecipeControllerFetchAllRecipesResponseResponseData.Recipe();
+            recipe.setRecipeId(recipeItem.getId());
             recipe.setName(recipeItem.getName());
             recipe.setDescription(recipeItem.getDescription());
             recipe.setInstruction(recipeItem.getRecipeInstruction());

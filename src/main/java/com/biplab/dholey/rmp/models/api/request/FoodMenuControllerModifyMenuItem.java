@@ -9,4 +9,8 @@ public class FoodMenuControllerModifyMenuItem {
     private Long foodMenuItemId;
     @JsonProperty("price")
     private Double price;
+    @JsonProperty("name")
+    private String name;
+    @JsonProperty("description")
+    private String description;
 }

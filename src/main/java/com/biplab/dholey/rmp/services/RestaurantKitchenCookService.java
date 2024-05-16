@@ -12,8 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
-
 @Service
 public class RestaurantKitchenCookService {
 
@@ -33,44 +31,24 @@ public class RestaurantKitchenCookService {
             if (orderItem == null) {
                 throw new RuntimeException("orderItem not found.");
             }
-            if (orderItem.getStatus() == OrderItemStatusEnum.PICKED_BY_COOK) {
-                Long foodMenuItemId = orderItem.getFoodMenuItemId();
-                FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(foodMenuItemId);
-                if (foodMenuItem == null) {
-                    throw new RuntimeException("foodMenuItem not found");
-                }
-                RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
-                try {
-                    Thread.sleep(recipeItem.getEstimatedTimeInMinutes() * 60 * 1000);
-                } catch (Exception e) {
-                    logger.error("Exception raised inside PICKED_BY_COOK block!!", "processOrder", RestaurantKitchenCookService.class.toString(), e, Map.of("orderItem", orderItem.toString()));
-                }
-                if (!restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.READY_TO_SERVE)) {
-                    throw new RuntimeException("updateOrderStatus failed!!");
-                }
-                logger.info("processOrder called successfully resolved!!", "processOrder", RestaurantKitchenCookService.class.toString(), null);
-            } else if (orderItem.getStatus() == OrderItemStatusEnum.QUEUED) {
-                if (restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.PICKED_BY_COOK)) {
-                    throw new RuntimeException("updateOrderStatus failed!!");
-                }
-                Long foodMenuItemId = orderItem.getFoodMenuItemId();
-                FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(foodMenuItemId);
-                if (foodMenuItem == null) {
-                    throw new RuntimeException("foodMenuItem not found");
-                }
-                RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
-                try {
-                    Thread.sleep(recipeItem.getEstimatedTimeInMinutes() * 60 * 1000);
-                } catch (Exception e) {
-                    logger.error("Exception raised inside QUEUED block!!", "processOrder", RestaurantKitchenCookService.class.toString(), e, null);
-                }
-                if (restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.PICKED_BY_COOK)) {
-                    throw new RuntimeException("updateOrderStatus failed!!");
-                }
-                logger.info("processOrder called successfully resolved!!", "processOrder", RestaurantKitchenCookService.class.toString(), null);
-            } else {
-                logger.error("Un-supported OrderItem status received!!", "processOrder", RestaurantKitchenCookService.class.toString(), new UnsupportedOperationException("Un-Supported status received inside."), Map.of("orderItem", orderItem.toString()));
+            if (restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.PICKED_BY_COOK)) {
+                throw new RuntimeException("updateOrderStatus failed!!");
             }
+            Long foodMenuItemId = orderItem.getFoodMenuItemId();
+            FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(foodMenuItemId);
+            if (foodMenuItem == null) {
+                throw new RuntimeException("foodMenuItem not found");
+            }
+            RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(foodMenuItem.getRecipeItemId());
+            try {
+                Thread.sleep(recipeItem.getEstimatedTimeInMinutes() * 60 * 1000);
+            } catch (Exception e) {
+                logger.error("Exception raised inside QUEUED block!!", "processOrder", RestaurantKitchenCookService.class.toString(), e, null);
+            }
+            if (restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.READY_TO_SERVE)) {
+                throw new RuntimeException("updateOrderStatus failed!!");
+            }
+            logger.info("processOrder called successfully resolved!!", "processOrder", RestaurantKitchenCookService.class.toString(), null);
         } catch (Exception e) {
             logger.error("Something went wrong!!", "processOrder", RestaurantKitchenCookService.class.toString(), e, null);
         }
