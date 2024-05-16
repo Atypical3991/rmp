@@ -25,6 +25,7 @@
 
     <logger name="com.biplab.dholey.rmp" level="INFO" additivity="false">
         <appender-ref ref="FILE"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <root level="ERROR">

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -16,7 +17,7 @@ public class TableBookedItem {
 
     private Long tableId;
 
-    private List<Long> orderIds;
+    private List<Long> orderIds = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     private BookedTableStatusEnum status;

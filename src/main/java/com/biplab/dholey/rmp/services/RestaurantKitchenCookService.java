@@ -5,7 +5,7 @@ import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.OrderItem;
 import com.biplab.dholey.rmp.models.db.RecipeItem;
 import com.biplab.dholey.rmp.models.db.enums.OrderItemStatusEnum;
-import com.biplab.dholey.rmp.models.util.TaskQueueModels.PrepareFoodTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.util.CustomLogger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ public class RestaurantKitchenCookService {
             if (orderItem == null) {
                 throw new RuntimeException("orderItem not found.");
             }
-            if (restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.PICKED_BY_COOK)) {
+            if (!restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.PICKED_BY_COOK)) {
                 throw new RuntimeException("updateOrderStatus failed!!");
             }
             Long foodMenuItemId = orderItem.getFoodMenuItemId();
@@ -45,7 +45,7 @@ public class RestaurantKitchenCookService {
             } catch (Exception e) {
                 logger.error("Exception raised inside QUEUED block!!", "processOrder", RestaurantKitchenCookService.class.toString(), e, null);
             }
-            if (restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.READY_TO_SERVE)) {
+            if (!restaurantOrderService.updateOrderStatus(orderItem.getId(), OrderItemStatusEnum.READY_TO_SERVE)) {
                 throw new RuntimeException("updateOrderStatus failed!!");
             }
             logger.info("processOrder called successfully resolved!!", "processOrder", RestaurantKitchenCookService.class.toString(), null);
@@ -55,8 +55,8 @@ public class RestaurantKitchenCookService {
 
     }
 
-    public PrepareFoodTaskQueueModel fetchAllOrdersToBeProcessed() {
-        logger.info("fetchAllOrdersToBeProcessed called!!", "fetchAllOrdersToBeProcessed", RestaurantKitchenCookService.class.toString(), null);
+    public TaskQueueInterface fetchAllOrdersToBeProcessed() {
+        logger.debug("fetchAllOrdersToBeProcessed called!!", "fetchAllOrdersToBeProcessed", RestaurantKitchenCookService.class.toString(), null);
         return restaurantOrderService.popQueuedPrepareFoodTasks();
     }
 

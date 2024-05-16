@@ -15,7 +15,7 @@ public class TableItem {
 
     private Long tableNumber;
 
-    private Long occupancy;
+    private Long occupancy = 0L;
 
     @Enumerated(EnumType.STRING)
     private TableItemStatusEnum status;

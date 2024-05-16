@@ -41,6 +41,8 @@ public class RestaurantTableControllerFetchAllAvailableTablesResponse extends Ba
 
         @Data
         public static class Table {
+            @JsonProperty("tableId")
+            private Long tableId;
             @JsonProperty("tableNumber")
             private Long number;
             @JsonProperty("tableStatus")

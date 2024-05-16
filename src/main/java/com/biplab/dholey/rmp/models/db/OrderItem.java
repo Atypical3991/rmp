@@ -15,9 +15,9 @@ public class OrderItem {
 
     private Long foodMenuItemId;
 
-    private Long quantity;
+    private Long quantity = 0L;
 
-    private Double totalPrice;
+    private Double totalPrice = 0D;
 
     private Long tableItemId;
 

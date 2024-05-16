@@ -7,6 +7,7 @@ import com.biplab.dholey.rmp.models.api.response.RestaurantTableControllerFetchA
 import com.biplab.dholey.rmp.models.db.TableItem;
 import com.biplab.dholey.rmp.models.db.enums.TableItemStatusEnum;
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.TableCleanRequestTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.repositories.TableItemRepository;
 import com.biplab.dholey.rmp.transformers.RestaurantTableControllerAddTableRequestToTableItemTransformer;
 import com.biplab.dholey.rmp.transformers.TableItemToRestaurantTableControllerFetchTableStatusResponseTransformer;
@@ -35,11 +36,23 @@ public class RestaurantTableService {
     private RestaurantTableBookService restaurantTableBookService;
     @Autowired
     private RestaurantTableControllerAddTableRequestToTableItemTransformer restaurantTableControllerAddTableRequestToTableItemTransformer;
+    @Autowired
     private TableItemToRestaurantTableControllerFetchTableStatusResponseTransformer tableItemToRestaurantTableControllerFetchTableStatusResponseTransformer;
 
     public BaseDBOperationsResponse addTable(RestaurantTableControllerAddTableRequest addTableRequest) {
         try {
             logger.info("addTable called!!", "addTable", RestaurantTableService.class.toString(), Map.of("addTableRequest", addTableRequest.toString()));
+            TableItem tableItem = tableItemRepository.findByTableNumber(addTableRequest.getTableNumber());
+            if (tableItem != null) {
+                if (tableItem.getStatus() == TableItemStatusEnum.REMOVED) {
+                    tableItem.setStatus(TableItemStatusEnum.AVAILABLE);
+                    tableItemRepository.save(tableItem);
+                    return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "table already present with this table number, it is available now.");
+                } else {
+                    return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "table already present with this table number!!");
+                }
+            }
+
             TableItem item = restaurantTableControllerAddTableRequestToTableItemTransformer.transform(addTableRequest);
             tableItemRepository.save(item);
             logger.info("addTable successfully processed!!", "addTable", RestaurantTableService.class.toString(), Map.of("addTableRequest", addTableRequest.toString()));
@@ -50,10 +63,10 @@ public class RestaurantTableService {
         }
     }
 
-    public TableCleanRequestTaskQueueModel popCleaningTableTask() {
+    public TaskQueueInterface popCleaningTableTask() {
         try {
-            logger.info("popCleaningTableTask called!!", "popCleaningTableTask", RestaurantTableService.class.toString(), null);
-            return (TableCleanRequestTaskQueueModel) tableCleaningCustomTaskQueue.popTask();
+            logger.debug("popCleaningTableTask called!!", "popCleaningTableTask", RestaurantTableService.class.toString(), null);
+            return tableCleaningCustomTaskQueue.popTask();
         } catch (Exception e) {
             logger.error("Exception raised in popCleaningTableTask", "popCleaningTableTask", RestaurantTableService.class.toString(), e, null);
             return null;
@@ -80,12 +93,8 @@ public class RestaurantTableService {
             logger.info("bookTableByOccupancy called!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
             TableItem tableItem = tableItemRepository.findByIdAndStatus(tableId, TableItemStatusEnum.AVAILABLE);
             if (tableItem == null) {
-                logger.info("tableItem not found!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
-                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("tableItem not found");
-            }
-            if (tableItem.getStatus() == TableItemStatusEnum.BOOKED) {
-                logger.info("tableItem is in Booked state!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
-                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("tableItem is in Booked state!!");
+                logger.info("Either tableItem is not present or is not available!!", "bookTableByTableId", RestaurantTableService.class.toString(), Map.of("tableId", tableId.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Either tableItem is not present or is not available!!");
             }
             tableItem.setStatus(TableItemStatusEnum.BOOKED);
             tableItemRepository.save(tableItem);
@@ -210,9 +219,10 @@ public class RestaurantTableService {
             RestaurantTableControllerFetchAllBookedTablesResponse.RestaurantTableControllerFetchAllBookedTablesResponseData data = new RestaurantTableControllerFetchAllBookedTablesResponse.RestaurantTableControllerFetchAllBookedTablesResponseData();
             data.setTablesList(new ArrayList<>());
             for (TableItem tableItem : tableItemsList) {
-                RestaurantTableControllerFetchAllBookedTablesResponse.TableItem table = new RestaurantTableControllerFetchAllBookedTablesResponse.TableItem();
+                RestaurantTableControllerFetchAllBookedTablesResponse.RestaurantTableControllerFetchAllBookedTablesResponseData.TableItem table = new RestaurantTableControllerFetchAllBookedTablesResponse.RestaurantTableControllerFetchAllBookedTablesResponseData.TableItem();
                 table.setTableNumber(tableItem.getTableNumber());
                 table.setOccupancy(tableItem.getOccupancy());
+                table.setTableId(tableItem.getId());
                 data.getTablesList().add(table);
             }
             logger.info("fetchBookedTables successfully!!", "fetchAllTables", RestaurantTableService.class.toString(), null);

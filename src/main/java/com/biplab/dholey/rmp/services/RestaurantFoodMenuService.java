@@ -40,6 +40,7 @@ public class RestaurantFoodMenuService {
             data.setMenuItems(new ArrayList<>());
             for (FoodMenuItem foodMenuItem : foodMenuItems) {
                 FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData.MenuItem menuItem = new FoodMenuControllerFetchFoodMenuResponse.FoodMenuControllerFetchFoodMenuResponseResponseData.MenuItem();
+                menuItem.setId(foodMenuItem.getId());
                 menuItem.setName(foodMenuItem.getName());
                 menuItem.setPrice(foodMenuItem.getPrice());
                 menuItem.setDescription(foodMenuItem.getDescription());
@@ -59,8 +60,8 @@ public class RestaurantFoodMenuService {
             Long recipeItemId = addMenuItemRequest.getRecipeItemId();
             FoodMenuItem foodMenuItem = foodMenuItemRepository.findByRecipeItemId(recipeItemId);
             if (foodMenuItem != null) {
-                logger.info("foodMenuItem not found!!", "addFoodMenuItem", RestaurantFoodMenuService.class.toString(), Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
-                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("FoodMenuItem not found for recipeItemId: " + recipeItemId);
+                logger.info("foodMenuItem already present for this Recipe!!", "addFoodMenuItem", RestaurantFoodMenuService.class.toString(), Map.of("addMenuItemRequest", addMenuItemRequest.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("foodMenuItem already present for this Recipe!!");
             }
 
             RecipeItem recipeItem = restaurantRecipeService.fetchRecipeItemById(recipeItemId);

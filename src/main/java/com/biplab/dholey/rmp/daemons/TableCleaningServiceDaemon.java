@@ -2,6 +2,7 @@ package com.biplab.dholey.rmp.daemons;
 
 import com.biplab.dholey.rmp.models.db.TableItem;
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.TableCleanRequestTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.services.RestaurantTableBookService;
 import com.biplab.dholey.rmp.services.RestaurantTableService;
 import com.biplab.dholey.rmp.services.TableNotificationService;
@@ -45,8 +46,9 @@ public class TableCleaningServiceDaemon extends Thread {
         ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                TableCleanRequestTaskQueueModel tableCleanRequestTaskQueueModel = restaurantTableService.popCleaningTableTask();
-                if (tableCleanRequestTaskQueueModel != null) {
+                TaskQueueInterface taskQueueInterface = restaurantTableService.popCleaningTableTask();
+                if (taskQueueInterface != null) {
+                    TableCleanRequestTaskQueueModel tableCleanRequestTaskQueueModel = (TableCleanRequestTaskQueueModel) taskQueueInterface;
                     logger.info("TableCleaningServiceDaemon successfully received task.", "run", TableCleaningServiceDaemon.class.toString(), Map.of("task", tableCleanRequestTaskQueueModel.toString()));
                     TableItem tableItem = restaurantTableService.fetchTableById(tableCleanRequestTaskQueueModel.getTableId());
                     if (tableItem == null) {
@@ -58,6 +60,7 @@ public class TableCleaningServiceDaemon extends Thread {
                     logger.info("TableCleaningServiceDaemon successfully processed task.", "run", TableCleaningServiceDaemon.class.toString(), Map.of("task", tableCleanRequestTaskQueueModel.toString()));
 
                 }
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 logger.error("TableCleaningServiceDaemon InterruptedException exception raised.", "run", TableCleaningServiceDaemon.class.toString(), e, null);
                 Thread.currentThread().interrupt();

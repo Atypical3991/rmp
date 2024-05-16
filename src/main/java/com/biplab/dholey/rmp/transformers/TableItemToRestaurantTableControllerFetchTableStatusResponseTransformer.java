@@ -15,6 +15,7 @@ public class TableItemToRestaurantTableControllerFetchTableStatusResponseTransfo
         List<RestaurantTableControllerFetchAllAvailableTablesResponse.RestaurantTableControllerFetchAllAvailableTablesResponseResponseData.Table> tablesList = new ArrayList<>();
         for (TableItem tableItem : source) {
             RestaurantTableControllerFetchAllAvailableTablesResponse.RestaurantTableControllerFetchAllAvailableTablesResponseResponseData.Table table = new RestaurantTableControllerFetchAllAvailableTablesResponse.RestaurantTableControllerFetchAllAvailableTablesResponseResponseData.Table();
+            table.setTableId(tableItem.getId());
             table.setNumber(tableItem.getTableNumber());
             table.setOccupancy(tableItem.getOccupancy());
             table.setStatus(tableItem.getStatus().name());

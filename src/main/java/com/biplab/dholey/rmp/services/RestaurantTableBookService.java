@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -83,6 +84,9 @@ public class RestaurantTableBookService {
             if (tableBookedItem == null) {
                 logger.info("tableBookedItem not found!!", "updateOrderIdsInTabledBookedItem", RestaurantTableBookService.class.toString(), Map.of("tableId", tableId.toString(), "orderIds", orderIds.toString()));
                 return false;
+            }
+            if (tableBookedItem.getOrderIds() == null) {
+                tableBookedItem.setOrderIds(new ArrayList<>());
             }
             tableBookedItem.getOrderIds().addAll(orderIds);
             tableBookRepository.save(tableBookedItem);

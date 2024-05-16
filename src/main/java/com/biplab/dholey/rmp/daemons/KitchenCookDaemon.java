@@ -2,6 +2,7 @@ package com.biplab.dholey.rmp.daemons;
 
 
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.PrepareFoodTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.services.RestaurantKitchenCookService;
 import com.biplab.dholey.rmp.util.CustomLogger;
 import org.slf4j.LoggerFactory;
@@ -35,13 +36,15 @@ public class KitchenCookDaemon extends Thread {
         ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                PrepareFoodTaskQueueModel queuedOrder = restaurantKitchenCookService.fetchAllOrdersToBeProcessed();
-                if (queuedOrder != null) {
-                    logger.info("KitchenCookDaemon successfully received PrepareFoodTaskQueueModel task", "run", KitchenCookDaemon.class.toString(), Map.of("task", queuedOrder.toString()));
-                    executorService.submit(() -> restaurantKitchenCookService.processOrder(queuedOrder.getOrderId()));
+                TaskQueueInterface taskQueueInterface = restaurantKitchenCookService.fetchAllOrdersToBeProcessed();
+                if (taskQueueInterface != null) {
+                    PrepareFoodTaskQueueModel prepareFoodTaskQueueModel = (PrepareFoodTaskQueueModel) taskQueueInterface;
+                    logger.info("KitchenCookDaemon successfully received PrepareFoodTaskQueueModel task", "run", KitchenCookDaemon.class.toString(), Map.of("task", prepareFoodTaskQueueModel.toString()));
+                    executorService.submit(() -> restaurantKitchenCookService.processOrder(prepareFoodTaskQueueModel.getOrderId()));
                     Thread.sleep(1000);
-                    logger.info("KitchenCookDaemon successfully processed PrepareFoodTaskQueueModel task", "run", KitchenCookDaemon.class.toString(), Map.of("task", queuedOrder.toString()));
+                    logger.info("KitchenCookDaemon successfully processed PrepareFoodTaskQueueModel task", "run", KitchenCookDaemon.class.toString(), Map.of("task", prepareFoodTaskQueueModel.toString()));
                 }
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 logger.error("KitchenCookDaemon InterruptedException exception raised.", "run", KitchenCookDaemon.class.toString(), e, null);
                 Thread.currentThread().interrupt();

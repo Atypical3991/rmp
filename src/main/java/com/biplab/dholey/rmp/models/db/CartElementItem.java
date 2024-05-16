@@ -13,5 +13,5 @@ public class CartElementItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long foodItemId;
-    private Long quantity;
+    private Long quantity = 0L;
 }

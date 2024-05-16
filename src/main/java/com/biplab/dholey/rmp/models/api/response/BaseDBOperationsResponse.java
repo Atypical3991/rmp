@@ -19,6 +19,7 @@ public class BaseDBOperationsResponse extends BaseResponse {
 
     @Override
     public BaseDBOperationsResponse getInternalServerErrorResponse(String message, Exception e) {
+        this.setData(null);
         this.setMessage(message);
         this.setError(e.getMessage());
         this.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -27,12 +28,14 @@ public class BaseDBOperationsResponse extends BaseResponse {
 
     @Override
     public BaseDBOperationsResponse getNotFoundServerErrorResponse(String message) {
+        this.setData(null);
         this.setMessage(message);
         this.setStatusCode(HttpStatus.NOT_FOUND.value());
         return this;
     }
 
     public BaseDBOperationsResponse getNotAcceptableServerErrorResponse(String message) {
+        this.setData(null);
         this.setMessage(message);
         this.setStatusCode(HttpStatus.NOT_ACCEPTABLE.value());
         return this;

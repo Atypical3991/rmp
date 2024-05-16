@@ -9,6 +9,7 @@ import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.OrderItem;
 import com.biplab.dholey.rmp.models.db.enums.BillItemStatusEnum;
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.GenerateBillTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.repositories.BillItemRepository;
 import com.biplab.dholey.rmp.util.CustomLogger;
 import com.biplab.dholey.rmp.util.CustomTaskQueue;
@@ -72,9 +73,9 @@ public class RestaurantBillService {
         return true;
     }
 
-    public GenerateBillTaskQueueModel popGenerateBillTask() {
-        logger.info("popGenerateBillTask called!!", "updatePaymentStatus", RestaurantBillService.class.toString(), null);
-        return (GenerateBillTaskQueueModel) generateBillCustomTaskQueue.popTask();
+    public TaskQueueInterface popGenerateBillTask() {
+        logger.debug("popGenerateBillTask called!!", "updatePaymentStatus", RestaurantBillService.class.toString(), null);
+        return generateBillCustomTaskQueue.popTask();
     }
 
     @Transactional
@@ -198,14 +199,16 @@ public class RestaurantBillService {
                 data.setPaymentStatus("Payment Successfully Received");
             } else if (billItem.getStatus() == BillItemStatusEnum.PAYMENT_FAILED) {
                 data.setPaymentStatus("Last Payment Failed.");
+            } else if (billItem.getStatus() == BillItemStatusEnum.PAYMENT_INITIATED) {
+                data.setPaymentStatus("Payment has been initiated, please make the payment");
             } else {
-                data.setPaymentStatus("Payment hasn't been generated");
+                data.setPaymentStatus("Payment hasn't been initiated yet");
             }
             data.setOrdersList(new ArrayList<>());
-            List<RestaurantBillControllerFetchBillDetailsByBillIdResponse.OrderDetails> orderDetailsListResponse = data.getOrdersList();
+            List<RestaurantBillControllerFetchBillDetailsByBillIdResponse.RestaurantBillControllerFetchBillDetailsByBillIdResponseData.OrderDetails> orderDetailsListResponse = data.getOrdersList();
             List<OrderItem> orderItemList = restaurantOrderService.fetchAllOrdersByOrderIds(billItem.getOrderItemIds());
             for (OrderItem orderItem : orderItemList) {
-                RestaurantBillControllerFetchBillDetailsByBillIdResponse.OrderDetails orderDetails = new RestaurantBillControllerFetchBillDetailsByBillIdResponse.OrderDetails();
+                RestaurantBillControllerFetchBillDetailsByBillIdResponse.RestaurantBillControllerFetchBillDetailsByBillIdResponseData.OrderDetails orderDetails = new RestaurantBillControllerFetchBillDetailsByBillIdResponse.RestaurantBillControllerFetchBillDetailsByBillIdResponseData.OrderDetails();
                 orderDetails.setOrderId(orderItem.getId());
                 orderDetails.setTotalPrice(orderItem.getTotalPrice());
 

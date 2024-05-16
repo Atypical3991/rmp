@@ -16,9 +16,9 @@ public class RestaurantOrderController {
     @Autowired
     private RestaurantOrderService restaurantOrderService;
 
-    @PostMapping("/create-order")
-    public ResponseEntity<BaseDBOperationsResponse> createOrder(@RequestBody RestaurantOrderControllerCreateOrderRequest createOrderRequest) {
-        return ResponseEntity.ok().body(restaurantOrderService.createOrder(createOrderRequest));
+    @PostMapping("/place-order")
+    public ResponseEntity<BaseDBOperationsResponse> placeOrder(@RequestBody RestaurantOrderControllerCreateOrderRequest createOrderRequest) {
+        return ResponseEntity.ok().body(restaurantOrderService.placeOrder(createOrderRequest));
     }
 
     @GetMapping("/fetch-order-details-by-id")

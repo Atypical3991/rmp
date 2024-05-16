@@ -42,6 +42,8 @@ public class FoodMenuControllerFetchFoodMenuResponse extends BaseResponse {
 
         @Data
         public static class MenuItem {
+            @JsonProperty("id")
+            private Long id;
             @JsonProperty("name")
             private String name;
             @JsonProperty("description")

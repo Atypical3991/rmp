@@ -21,7 +21,7 @@ public class RestaurantWaiterService {
     private RestaurantTableBookService restaurantTableBookService;
 
     public void serveReadyToServerFood() {
-        logger.info("serveReadyToServerFood called!!", "serveReadyToServerFood", RestaurantWaiterService.class.toString(), null);
+//        logger.info("serveReadyToServerFood called!!", "serveReadyToServerFood", RestaurantWaiterService.class.toString(), null);
         Map<Long, List<OrderItem>> ordersToBeServed = restaurantOrderService.fetchReadyToServeOrders();
         if (ordersToBeServed != null) {
             for (Map.Entry<Long, List<OrderItem>> entry : ordersToBeServed.entrySet()) {

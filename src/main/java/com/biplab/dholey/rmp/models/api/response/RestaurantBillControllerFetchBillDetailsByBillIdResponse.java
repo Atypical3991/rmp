@@ -50,15 +50,17 @@ public class RestaurantBillControllerFetchBillDetailsByBillIdResponse extends Ba
         @JsonProperty("paymentStatus")
         private String paymentStatus;
 
+        @Data
+        public static class OrderDetails {
+            @JsonProperty("orderId")
+            private Long orderId;
+            @JsonProperty("foodItemName")
+            private String foodItemName;
+            @JsonProperty("totalPrice")
+            private Double totalPrice;
+        }
+
     }
 
-    @Data
-    public static class OrderDetails {
-        @JsonProperty("orderId")
-        private Long orderId;
-        @JsonProperty("foodItemName")
-        private String foodItemName;
-        @JsonProperty("totalPrice")
-        private Double totalPrice;
-    }
+
 }

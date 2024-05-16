@@ -39,6 +39,11 @@ public class RestaurantRecipeService {
     public BaseDBOperationsResponse addRecipe(RestaurantRecipeControllerAddRecipeRequest addRecipeRequest) {
         try {
             logger.info("addRecipe called!!", "addRecipe", RestaurantRecipeService.class.toString(), Map.of("addRecipeRequest", addRecipeRequest.toString()));
+            RecipeItem recipeItemFromDB = recipeItemRepository.findByName(addRecipeRequest.getName());
+            if (recipeItemFromDB != null) {
+                logger.info("Recipe by this name already added!!", "addRecipe", RestaurantRecipeService.class.toString(), Map.of("addRecipeRequest", addRecipeRequest.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Recipe by this name already added.");
+            }
             RecipeItem recipeItem = restaurantRecipeControllerAddRecipeRequestToRecipeItemTransformer.transform(addRecipeRequest);
             recipeItemRepository.save(recipeItem);
             logger.info("addRecipe successfully processed!!", "addRecipe", RestaurantRecipeService.class.toString(), Map.of("addRecipeRequest", addRecipeRequest.toString()));

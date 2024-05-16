@@ -9,5 +9,7 @@ import java.util.List;
 public interface TableItemRepository extends JpaRepository<TableItem, Long> {
     TableItem findByIdAndStatus(Long tableId, TableItemStatusEnum status);
 
+    TableItem findByTableNumber(Long tableId);
+
     List<TableItem> findAllByStatusIn(List<TableItemStatusEnum> statusEnumList);
 }

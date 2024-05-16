@@ -1,6 +1,7 @@
 package com.biplab.dholey.rmp.daemons;
 
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.NotificationTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.services.TableNotificationService;
 import com.biplab.dholey.rmp.util.CustomLogger;
 import org.slf4j.LoggerFactory;
@@ -32,13 +33,15 @@ public class TableNotificationDaemon extends Thread {
         ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                NotificationTaskQueueModel notificationTaskQueueModel = tableNotificationService.popNotificationTask();
-                if (notificationTaskQueueModel != null) {
+                TaskQueueInterface taskQueueInterface = tableNotificationService.popNotificationTask();
+                if (taskQueueInterface != null) {
+                    NotificationTaskQueueModel notificationTaskQueueModel = (NotificationTaskQueueModel) taskQueueInterface;
                     logger.info("TableNotificationDaemon successfully received task.", "run", TableNotificationDaemon.class.toString(), Map.of("task", notificationTaskQueueModel.toString()));
                     //TODO: Send notification functionality for customers needs to be implemented.
                     Thread.sleep(1000);
                     logger.info("TableNotificationDaemon successfully processed task.", "run", TableNotificationDaemon.class.toString(), Map.of("task", notificationTaskQueueModel.toString()));
                 }
+                Thread.sleep(100);
 
             } catch (InterruptedException e) {
                 logger.error("TableNotificationDaemon InterruptedException exception raised.", "run", TableNotificationDaemon.class.toString(), e, null);

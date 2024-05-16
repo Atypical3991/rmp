@@ -41,14 +41,19 @@ public class RestaurantTableControllerFetchAllBookedTablesResponse extends BaseR
         @JsonProperty("tablesList")
         private List<TableItem> tablesList;
 
+        @Data
+        public static class TableItem {
+            @JsonProperty("tableId")
+            private Long tableId;
+
+            @JsonProperty("tableNumber")
+            private Long tableNumber;
+
+            @JsonProperty("occupancy")
+            private Long occupancy;
+        }
+
     }
 
-    @Data
-    public static class TableItem {
-        @JsonProperty("tableNumber")
-        private Long tableNumber;
 
-        @JsonProperty("occupancy")
-        private Long occupancy;
-    }
 }

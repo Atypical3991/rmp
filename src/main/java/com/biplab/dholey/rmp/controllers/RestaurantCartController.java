@@ -7,10 +7,7 @@ import com.biplab.dholey.rmp.models.api.response.RestaurantCartControllerFetchAc
 import com.biplab.dholey.rmp.services.RestaurantCartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/restaurant-cart")
@@ -19,18 +16,24 @@ public class RestaurantCartController {
     @Autowired
     private RestaurantCartService restaurantCartService;
 
+
+    @PostMapping("/add-food-item-to-cart")
     public ResponseEntity<BaseDBOperationsResponse> addFoodItemIntoCart(@RequestBody RestaurantCartControllerAddItemRequest restaurantCartControllerAddItemRequest) {
         return ResponseEntity.ok().body(restaurantCartService.addFoodItemIntoCart(restaurantCartControllerAddItemRequest));
     }
 
+    @PutMapping("/remove-food-item-from-cart")
     public ResponseEntity<BaseDBOperationsResponse> removeFoodItemFromCart(@RequestBody RestaurantCartControllerRemoveItemRequest restaurantCartControllerRemoveItemRequest) {
         return ResponseEntity.ok().body(restaurantCartService.removeFoodItemFromCart(restaurantCartControllerRemoveItemRequest));
     }
 
+    @GetMapping("/fetch-cart-items-by-table-id")
     public ResponseEntity<RestaurantCartControllerFetchActiveCartItemsByTableIdResponse> fetchActiveCartItemsByTableId(@RequestParam(name = "tableId") Long tableId) {
         return ResponseEntity.ok().body(restaurantCartService.fetchActiveCartItemsByTableId(tableId));
     }
 
+
+    @PutMapping("/discard-cart-items-by-table-id")
     public ResponseEntity<BaseDBOperationsResponse> discardCartByTableId(@RequestParam(name = "tableId") Long tableId) {
         return ResponseEntity.ok().body(restaurantCartService.discardCartByTableId(tableId));
     }

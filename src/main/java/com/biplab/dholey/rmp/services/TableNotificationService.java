@@ -1,6 +1,7 @@
 package com.biplab.dholey.rmp.services;
 
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.NotificationTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.util.CustomLogger;
 import com.biplab.dholey.rmp.util.CustomTaskQueue;
 import org.slf4j.LoggerFactory;
@@ -63,10 +64,10 @@ public class TableNotificationService {
         }
     }
 
-    public NotificationTaskQueueModel popNotificationTask() {
-        logger.info("popNotificationTask called!!", "popNotificationTask", TableNotificationService.class.toString(), null);
+    public TaskQueueInterface popNotificationTask() {
+        logger.debug("popNotificationTask called!!", "popNotificationTask", TableNotificationService.class.toString(), null);
         try {
-            return (NotificationTaskQueueModel) tableNotificationCustomTaskQueue.popTask();
+            return tableNotificationCustomTaskQueue.popTask();
         } catch (Exception e) {
             logger.error("popNotificationTask called!!", "popNotificationTask", TableNotificationService.class.toString(), e, null);
             return null;

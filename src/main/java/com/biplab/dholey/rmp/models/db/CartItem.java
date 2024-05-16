@@ -13,7 +13,7 @@ public class CartItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private List<Long> cartElementIds;
-    private Double totalPrice;
+    private Double totalPrice = 0D;
     private Long tableId;
     @Enumerated(EnumType.STRING)
     private CartItemStatusEnum status;

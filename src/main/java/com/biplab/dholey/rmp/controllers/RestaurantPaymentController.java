@@ -19,7 +19,7 @@ public class RestaurantPaymentController {
         return ResponseEntity.ok().body(restaurantPaymentService.initiateOrderPayment(billId));
     }
 
-    @GetMapping("/update-payment-status")
+    @PostMapping("/update-payment-status")
     public ResponseEntity<BaseDBOperationsResponse> updatePaymentStatus(@RequestBody RestaurantPaymentControllerUpdatePaymentStatusRequest updatePaymentStatusRequest) {
         return ResponseEntity.ok().body(restaurantPaymentService.updatePaymentStatus(updatePaymentStatusRequest));
     }

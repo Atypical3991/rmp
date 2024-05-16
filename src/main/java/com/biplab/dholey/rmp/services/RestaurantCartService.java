@@ -20,10 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 public class RestaurantCartService {
@@ -38,6 +35,47 @@ public class RestaurantCartService {
     @Autowired
     private RestaurantFoodMenuService restaurantFoodMenuService;
 
+    public boolean updateOrderPlacedInCartItem(Long cartId) {
+        try {
+            logger.info("fetchCartItemById called!!", "fetchCartItemById", RestaurantCartService.class.toString(), Map.of("cartId", cartId.toString()));
+            Optional<CartItem> cartItemOpt = cartItemRepository.findById(cartId);
+            if (cartItemOpt.isEmpty()) {
+                throw new RuntimeException("Cart item not found!!");
+            }
+            cartItemOpt.get().setStatus(CartItemStatusEnum.ORDER_PLACED);
+            cartItemRepository.save(cartItemOpt.get());
+            return true;
+        } catch (Exception e) {
+            logger.error("updateOrderPlacedInCartItem call failed", "updateOrderPlacedInCartItem", RestaurantCartService.class.toString(), e, Map.of("cartId", cartId.toString()));
+            return false;
+        }
+    }
+
+    public CartItem fetchActiveCartItemByTableId(Long tableId) {
+        try {
+            logger.info("fetchCartItemById called!!", "fetchCartItemById", RestaurantCartService.class.toString(), Map.of("tableId", tableId.toString()));
+            return cartItemRepository.findByTableIdAndStatus(tableId, CartItemStatusEnum.ACTIVE);
+        } catch (Exception e) {
+            logger.error("fetchCartItemById call failed", "fetchCartItemById", RestaurantCartService.class.toString(), e, Map.of("tableId", tableId.toString()));
+            return null;
+        }
+    }
+
+    public List<CartElementItem> fetchCartElementItemsByCartId(Long cartId) {
+        try {
+            logger.info("fetchCartItemById called!!", "fetchCartItemById", RestaurantCartService.class.toString(), Map.of("cartId", cartId.toString()));
+            Optional<CartItem> cartItemOpt = cartItemRepository.findById(cartId);
+            if (cartItemOpt.isEmpty()) {
+                throw new RuntimeException("Cart item not found!!");
+            }
+            CartItem cartItem = cartItemOpt.get();
+            return cartElementItemRepository.findAllByIdIn(cartItem.getCartElementIds());
+        } catch (Exception e) {
+            logger.error("fetchCartElementItemsByCartId call failed", "fetchCartElementItemsByCartId", RestaurantCartService.class.toString(), e, Map.of("cartId", cartId.toString()));
+            return null;
+        }
+    }
+
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public BaseDBOperationsResponse addFoodItemIntoCart(RestaurantCartControllerAddItemRequest restaurantCartControllerAddItemRequest) {
         try {
@@ -50,7 +88,7 @@ public class RestaurantCartService {
             }
             if (tableItem.getStatus() != TableItemStatusEnum.BOOKED) {
                 logger.info("Table not in booked state!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
-                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Table not in booked state.So, add items into Cart.");
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Table not in booked state.So, items can't be added.");
             }
             FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(restaurantCartControllerAddItemRequest.getFoodMenuItemId());
             if (foodMenuItem == null) {

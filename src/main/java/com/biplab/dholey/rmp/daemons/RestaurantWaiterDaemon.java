@@ -34,10 +34,9 @@ public class RestaurantWaiterDaemon extends Thread {
         ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                logger.info("RestaurantWaiterDaemon calling serveReadyToServerFood of RestaurantWaiterService.", "run", RestaurantWaiterDaemon.class.toString(), null);
+//                logger.info("RestaurantWaiterDaemon calling serveReadyToServerFood of RestaurantWaiterService.", "run", RestaurantWaiterDaemon.class.toString(), null);
                 restaurantWaiterService.serveReadyToServerFood();
                 Thread.sleep(1000);
-
             } catch (InterruptedException e) {
                 logger.error("RestaurantWaiterDaemon InterruptedException exception raised.", "run", RestaurantWaiterDaemon.class.toString(), e, null);
                 Thread.currentThread().interrupt();

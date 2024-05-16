@@ -1,6 +1,7 @@
 package com.biplab.dholey.rmp.daemons;
 
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.GenerateBillTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.services.RestaurantBillService;
 import com.biplab.dholey.rmp.util.CustomLogger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +35,15 @@ public class BillGeneratorDaemon extends Thread {
         ExecutorService executorService = Executors.newFixedThreadPool(MAX_NUMBER_OF_WORKERS);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                GenerateBillTaskQueueModel generateBillTaskQueueModel = restaurantBillService.popGenerateBillTask();
-                if (generateBillTaskQueueModel != null) {
+                TaskQueueInterface taskQueueInterface = restaurantBillService.popGenerateBillTask();
+                if (taskQueueInterface != null) {
+                    GenerateBillTaskQueueModel generateBillTaskQueueModel = (GenerateBillTaskQueueModel) taskQueueInterface;
                     logger.info("BillGeneratorDaemon successfully received GenerateBillTaskQueueModel task.", "run", BillGeneratorDaemon.class.toString(), Map.of("task", generateBillTaskQueueModel.toString()));
                     executorService.submit(() -> restaurantBillService.processGenerateBillTask(generateBillTaskQueueModel));
                     Thread.sleep(1000);
                     logger.info("BillGeneratorDaemon successfully processed GenerateBillTaskQueueModel task.", "run", BillGeneratorDaemon.class.toString(), Map.of("task", generateBillTaskQueueModel.toString()));
                 }
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 logger.error("BillGeneratorDaemon InterruptedException exception raised.", "run", BillGeneratorDaemon.class.toString(), e, null);
                 Thread.currentThread().interrupt();

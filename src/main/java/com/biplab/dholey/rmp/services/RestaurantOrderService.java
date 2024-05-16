@@ -4,12 +4,12 @@ import com.biplab.dholey.rmp.models.api.request.RestaurantOrderControllerCreateO
 import com.biplab.dholey.rmp.models.api.response.BaseDBOperationsResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerCheckOrderStatusResponse;
 import com.biplab.dholey.rmp.models.api.response.RestaurantOrderControllerFetchAllOrdersByTableResponse;
-import com.biplab.dholey.rmp.models.db.FoodMenuItem;
-import com.biplab.dholey.rmp.models.db.OrderItem;
-import com.biplab.dholey.rmp.models.db.TableBookedItem;
+import com.biplab.dholey.rmp.models.db.*;
 import com.biplab.dholey.rmp.models.db.enums.BookedTableStatusEnum;
+import com.biplab.dholey.rmp.models.db.enums.CartItemStatusEnum;
 import com.biplab.dholey.rmp.models.db.enums.OrderItemStatusEnum;
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.PrepareFoodTaskQueueModel;
+import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.repositories.OrderItemRepository;
 import com.biplab.dholey.rmp.util.CustomLogger;
 import com.biplab.dholey.rmp.util.CustomTaskQueue;
@@ -35,6 +35,9 @@ public class RestaurantOrderService {
     private RestaurantFoodMenuService restaurantFoodMenuService;
     @Autowired
     private RestaurantTableBookService restaurantTableBookService;
+
+    @Autowired
+    private RestaurantCartService restaurantCartService;
 
     public List<OrderItem> fetchAllOrdersByOrderIds(List<Long> orderIds) {
         logger.info("fetchAllOrdersByOrderIds called!!", "fetchAllOrdersByOrderIds", RestaurantOrderService.class.toString(), Map.of("orderIds", orderIds.toString()));
@@ -72,7 +75,7 @@ public class RestaurantOrderService {
 
     public Map<Long, List<OrderItem>> fetchReadyToServeOrders() {
         try {
-            logger.info("fetchReadyToServeOrders called!!", "fetchReadyToServeOrders", RestaurantOrderService.class.toString(), null);
+//            logger.info("fetchReadyToServeOrders called!!", "fetchReadyToServeOrders", RestaurantOrderService.class.toString(), null);
             List<OrderItem> orderItemList = orderItemRepository.findAllByStatusIn(List.of(OrderItemStatusEnum.READY_TO_SERVE));
             return orderItemList.stream().collect(Collectors.groupingBy(OrderItem::getTableItemId));
         } catch (Exception e) {
@@ -93,9 +96,9 @@ public class RestaurantOrderService {
 
     }
 
-    public PrepareFoodTaskQueueModel popQueuedPrepareFoodTasks() {
-        logger.info("popQueuedPrepareFoodTasks called!!", "popQueuedPrepareFoodTasks", RestaurantOrderService.class.toString(), null);
-        return (PrepareFoodTaskQueueModel) prepareFoodCustomTaskQueue.popTask();
+    public TaskQueueInterface popQueuedPrepareFoodTasks() {
+        logger.debug("popQueuedPrepareFoodTasks called!!", "popQueuedPrepareFoodTasks", RestaurantOrderService.class.toString(), null);
+        return prepareFoodCustomTaskQueue.popTask();
     }
 
     public boolean updateBillGenerationStatus(Long orderId) {
@@ -118,7 +121,7 @@ public class RestaurantOrderService {
     }
 
     @Transactional
-    public BaseDBOperationsResponse createOrder(RestaurantOrderControllerCreateOrderRequest orderRequest) {
+    public BaseDBOperationsResponse placeOrder(RestaurantOrderControllerCreateOrderRequest orderRequest) {
         try {
             logger.info("createOrder called!!", "createOrder", RestaurantOrderService.class.toString(), Map.of("orderRequest", orderRequest.toString()));
             Long queuedOrdersCount = orderItemRepository.countByStatus(OrderItemStatusEnum.QUEUED);
@@ -127,11 +130,27 @@ public class RestaurantOrderService {
                 return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Can't take anymore orders.");
             }
 
-            if (orderRequest.getOrderList().size() > MAX_ORDER_PER_REQUEST) {
+            CartItem cartItem = restaurantCartService.fetchActiveCartItemByTableId(orderRequest.getTableId());
+            if (cartItem == null) {
+                logger.info("CartItem not found!!", "createOrder", RestaurantOrderService.class.toString(), Map.of("orderRequest", orderRequest.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("CartItem not found!!");
+            }
+
+            if (cartItem.getStatus() == CartItemStatusEnum.ORDER_PLACED) {
+                logger.info("CartItem orders has already been placed!!", "createOrder", RestaurantOrderService.class.toString(), Map.of("orderRequest", orderRequest.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("CartItem orders has already been placed!!");
+            }
+
+            List<CartElementItem> cartElementItemList = restaurantCartService.fetchCartElementItemsByCartId(cartItem.getId());
+            if (cartElementItemList.isEmpty()) {
+                logger.info("Empty cart can't be processed", "createOrder", RestaurantOrderService.class.toString(), Map.of("orderRequest", orderRequest.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Empty cart can't be processed");
+            }
+
+            if (cartElementItemList.size() > MAX_ORDER_PER_REQUEST) {
                 logger.info("orders per request reached max threshold!!", "createOrder", RestaurantOrderService.class.toString(), Map.of("orderRequest", orderRequest.toString()));
                 return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Can't take more than " + MAX_ORDER_PER_REQUEST + " orders.");
             }
-
 
             Long tableId = orderRequest.getTableId();
             TableBookedItem tableBookedItem = restaurantTableBookService.getTableBookedItemByTableId(tableId);
@@ -145,24 +164,26 @@ public class RestaurantOrderService {
             }
 
             List<Long> orderIds = new ArrayList<>();
-            for (RestaurantOrderControllerCreateOrderRequest.Order order : orderRequest.getOrderList()) {
-                FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(order.getFoodMenuItemId());
+            for (CartElementItem cartElementItem : cartElementItemList) {
+                FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(cartElementItem.getFoodItemId());
                 if (foodMenuItem == null) {
-                    return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("foodMenuItem not found for foodMenuItemId: " + order.getFoodMenuItemId());
+                    return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("foodMenuItem not found for foodMenuItemId: " + cartElementItem.getFoodItemId());
                 }
                 OrderItem orderItem = new OrderItem();
-                orderItem.setFoodMenuItemId(order.getFoodMenuItemId());
-                orderItem.setQuantity(order.getQuantity());
+                orderItem.setFoodMenuItemId(cartElementItem.getFoodItemId());
+                orderItem.setQuantity(cartElementItem.getQuantity());
                 orderItem.setTableItemId(tableId);
                 orderItem.setStatus(OrderItemStatusEnum.QUEUED);
                 orderItem.setOrderPlacedAt(LocalDateTime.now());
-                orderItem.setTotalPrice(order.getQuantity() * foodMenuItem.getPrice());
+                orderItem.setTotalPrice(cartElementItem.getQuantity() * foodMenuItem.getPrice());
                 orderItemRepository.save(orderItem);
                 orderIds.add(orderItem.getId());
 
                 try {
                     if (!prepareFoodCustomTaskQueue.pushTask(new PrepareFoodTaskQueueModel(orderItem.getId(), orderItem.getTableItemId()))) {
                         logger.error("prepareFoodCustomTaskQueue task push failed!!", "createOrder", RestaurantOrderService.class.toString(), new RuntimeException("prepareFoodCustomTaskQueue task push failed!!"), Map.of("orderRequest", orderRequest.toString()));
+                    } else {
+                        System.out.println("task pushed into successfully prepareFoodCustomTaskQueue");
                     }
                 } catch (Exception e) {
                     logger.error("prepareFoodCustomTaskQueue task push failed!!", "createOrder", RestaurantOrderService.class.toString(), e, Map.of("orderRequest", orderRequest.toString()));
@@ -172,10 +193,13 @@ public class RestaurantOrderService {
             if (!restaurantTableBookService.updateLastOrderPlacedAt(tableId)) {
                 throw new RuntimeException("updateLastOrderPlacedAt failed.");
             }
-            Boolean updatedOrderIds = restaurantTableBookService.updateOrderIdsInTabledBookedItem(tableId, orderIds);
-            if (!updatedOrderIds) {
+            if (!restaurantTableBookService.updateOrderIdsInTabledBookedItem(tableId, orderIds)) {
                 throw new RuntimeException("OrderIds update failed for tableId");
             }
+            if (!restaurantCartService.updateOrderPlacedInCartItem(cartItem.getId())) {
+                throw new RuntimeException("updateOrderPlacedInCartItem failed");
+            }
+
             logger.info("createOrder successfully processed!!", "createOrder", RestaurantOrderService.class.toString(), Map.of("orderRequest", orderRequest.toString()));
             return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Orders successfully placed.");
         } catch (Exception e) {

@@ -44,7 +44,7 @@ public class CustomLogger {
             m.putAll(attr);
         }
         try {
-            logger.info(CustomStringUtil.MapToJSONString(m));
+            logger.error(CustomStringUtil.MapToJSONString(m));
         } catch (Exception e) {
             log.error("Inside error, exception raised", e);
         }
@@ -59,7 +59,7 @@ public class CustomLogger {
             m.putAll(attr);
         }
         try {
-            logger.info(CustomStringUtil.MapToJSONString(m));
+            logger.debug(CustomStringUtil.MapToJSONString(m));
         } catch (Exception e) {
             log.error("Inside debug, exception raised", e);
         }

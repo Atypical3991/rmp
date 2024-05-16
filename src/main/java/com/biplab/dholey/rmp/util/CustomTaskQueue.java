@@ -2,7 +2,6 @@ package com.biplab.dholey.rmp.util;
 
 import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class CustomTaskQueue {
@@ -10,7 +9,7 @@ public class CustomTaskQueue {
     private final String service;
 
     private final int max_queue_size;
-    private final BlockingQueue<TaskQueueInterface> queue;
+    private final LinkedBlockingQueue<TaskQueueInterface> queue;
 
 
     public CustomTaskQueue(String serviceName, int max_queue_size) {
@@ -27,11 +26,6 @@ public class CustomTaskQueue {
     }
 
     public TaskQueueInterface popTask() {
-        try {
-            return queue.take();
-        } catch (InterruptedException e) {
-            return null;
-        }
-
+        return queue.poll();
     }
 }
