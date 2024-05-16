@@ -8,11 +8,8 @@ import com.biplab.dholey.rmp.models.db.BillItem;
 import com.biplab.dholey.rmp.models.db.FoodMenuItem;
 import com.biplab.dholey.rmp.models.db.OrderItem;
 import com.biplab.dholey.rmp.models.db.enums.BillItemStatusEnum;
-import com.biplab.dholey.rmp.models.util.TaskQueueModels.GenerateBillTaskQueueModel;
-import com.biplab.dholey.rmp.models.util.TaskQueueModels.TaskQueueInterface;
 import com.biplab.dholey.rmp.repositories.BillItemRepository;
 import com.biplab.dholey.rmp.util.CustomLogger;
-import com.biplab.dholey.rmp.util.CustomTaskQueue;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,7 +23,6 @@ import java.util.Optional;
 @Service
 public class RestaurantBillService {
 
-    private final CustomTaskQueue generateBillCustomTaskQueue = new CustomTaskQueue("restaurant_generate_bill_task_queue", 100);
     private final CustomLogger logger = new CustomLogger(LoggerFactory.getLogger(RestaurantBillService.class));
 
     @Autowired
@@ -73,49 +69,6 @@ public class RestaurantBillService {
         return true;
     }
 
-    public TaskQueueInterface popGenerateBillTask() {
-        logger.debug("popGenerateBillTask called!!", "updatePaymentStatus", RestaurantBillService.class.toString(), null);
-        return generateBillCustomTaskQueue.popTask();
-    }
-
-    @Transactional
-    public void processGenerateBillTask(GenerateBillTaskQueueModel generateBillTaskQueueModel) {
-        try {
-            logger.info("processGenerateBillTask called!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("generateBillTaskQueueModel", generateBillTaskQueueModel.toString()));
-            Optional<BillItem> billItemOpt = billItemRepository.findById(generateBillTaskQueueModel.getBillItemId());
-            if (billItemOpt.isEmpty()) {
-                throw new RuntimeException("No Bill item found!!");
-            }
-            BillItem billItem = billItemOpt.get();
-            List<Long> orderItemsIds = billItem.getOrderItemIds();
-            List<OrderItem> orderItemsList = restaurantOrderService.fetchAllOrdersByOrderIds(orderItemsIds);
-
-            for (OrderItem orderItem : orderItemsList) {
-                FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
-                if (foodMenuItem == null) {
-                    logger.error("foodMenuItem not found!!", "processGenerateBillTask", RestaurantBillService.class.toString(), new RuntimeException("FoodMenuItem not found!!"), Map.of("orderItem", orderItem.toString()));
-                    throw new RuntimeException("foodMenuItem not found!!");
-                }
-                billItem.setPayable(billItem.getPayable() + (foodMenuItem.getPrice() * orderItem.getQuantity()));
-                billItem.getOrderItemIds().add(orderItem.getId());
-                if (!restaurantOrderService.updateBillGenerationStatus(orderItem.getId())) {
-                    logger.info("updateBillGenerationStatus failed!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("orderItem", orderItem.toString()));
-                    throw new RuntimeException("updateBillGenerationStatus call failed!!");
-                }
-            }
-
-            billItem.setStatus(BillItemStatusEnum.BILL_GENERATED);
-            billItem.setTableItemId(generateBillTaskQueueModel.getTableId());
-            billItemRepository.save(billItem);
-            if (!restaurantTableBookService.updateBillGenerateAt(generateBillTaskQueueModel.getTableId())) {
-                throw new RuntimeException("updateBillGenerateAt call failed!!");
-            }
-            logger.info("processGenerateBillTask successfully resolved!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("generateBillTaskQueueModel", generateBillTaskQueueModel.toString()));
-        } catch (Exception e) {
-            logger.info("Exception raised in processGenerateBillTask!!", "processGenerateBillTask", RestaurantBillService.class.toString(), Map.of("generateBillTaskQueueModel", generateBillTaskQueueModel.toString()));
-        }
-    }
-
     @Transactional
     public BaseDBOperationsResponse generateBill(RestaurantBillControllerGenerateBillRequest generateBillRequest) {
         try {
@@ -141,17 +94,13 @@ public class RestaurantBillService {
                     throw new RuntimeException("");
                 }
             }
-            billItem.setStatus(BillItemStatusEnum.BILL_GENERATION_QUEUED);
+
+            if(!restaurantTableBookService.updateBillGenerateAt(generateBillRequest.getTableItemId())){
+                throw  new RuntimeException("updateBillGenerateAt failed!!");
+            }
+            billItem.setStatus(BillItemStatusEnum.BILL_GENERATED);
             billItem.setTableItemId(generateBillRequest.getTableItemId());
             billItemRepository.save(billItem);
-
-            try {
-                if (!generateBillCustomTaskQueue.pushTask(new GenerateBillTaskQueueModel(billItem.getId(), generateBillRequest.getTableItemId()))) {
-                    logger.error("generateBillCustomTaskQueue push task failed!!", "generateBill", RestaurantBillService.class.toString(), new RuntimeException("generateBillCustomTaskQueue push task failed!!"), Map.of("generateBillRequest", generateBillRequest.toString()));
-                }
-            } catch (Exception e) {
-                logger.error("Exception raised while pushing Generate Bill task!!", "generateBill", RestaurantBillService.class.toString(), e, Map.of("generateBillRequest", generateBillRequest.toString()));
-            }
 
             logger.info("generateBill successfully processed!!", "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
             return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Bill generation has been queued!! you'll be notified once its been processed.");
