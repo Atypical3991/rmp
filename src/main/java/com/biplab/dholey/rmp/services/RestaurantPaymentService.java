@@ -53,12 +53,12 @@ public class RestaurantPaymentService {
                 logger.info("billItem not found!!", "updatePaymentStatus", RestaurantPaymentService.class.toString(), Map.of("updatePaymentStatusRequest", updatePaymentStatusRequest.toString()));
                 return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("billItem not found.");
             }
-            String status = updatePaymentStatusRequest.getStatus();
-            if (!restaurantBillService.updatePaymentStatus(billId, BillItemStatusEnum.valueOf(status))) {
+            BillItemStatusEnum status = updatePaymentStatusRequest.getStatus();
+            if (!restaurantBillService.updatePaymentStatus(billId, status)) {
                 logger.info("updatePaymentStatus failed!!", "updatePaymentStatus", RestaurantPaymentService.class.toString(), Map.of("updatePaymentStatusRequest", updatePaymentStatusRequest.toString()));
                 throw new RuntimeException("updatePaymentStatus failed!!");
             }
-            if (BillItemStatusEnum.valueOf(status) == BillItemStatusEnum.PAYMENT_SUCCESS) {
+            if (status == BillItemStatusEnum.PAYMENT_SUCCESS) {
                 if (!restaurantTableBookService.updatePaymentReceivedAt(billItem.getTableItemId())) {
                     throw new RuntimeException("updatePaymentReceivedAt failed.");
                 }

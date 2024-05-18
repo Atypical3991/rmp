@@ -20,6 +20,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.biplab.dholey.rmp.common.CustomError.CommonErrors.INTERNAL_SERVER_ERROR;
+import static com.biplab.dholey.rmp.common.CustomError.RestaurantBillGenerationServiceErrors.*;
+import static com.biplab.dholey.rmp.common.CustomSuccessMessage.RestaurantBillService.GENERATE_BILL_SUCCESS_RESPONSE;
+
 @Service
 public class RestaurantBillService {
 
@@ -74,39 +78,43 @@ public class RestaurantBillService {
         try {
             logger.info("generateBill called!!", "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
             List<Long> orderIds = generateBillRequest.getOrderIds();
+            if (orderIds.isEmpty()) {
+                logger.info(GENERATE_BILL_EMPTY_ORDERS_LIST_IN_REQUEST_ERROR, "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse(GENERATE_BILL_EMPTY_ORDERS_LIST_IN_REQUEST_ERROR);
+            }
             List<OrderItem> unBilledOrdersItemList = restaurantOrderService.fetchAllUnBilledOrders(orderIds);
             if (unBilledOrdersItemList.isEmpty()) {
-                logger.info("No UnBilled Orders found!!", "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
-                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse("No UnBilled Orders found!!");
+                logger.info(GENERATE_BILL_NO_UN_BILLED_ORDER_FOUND_ERROR, "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
+                return new BaseDBOperationsResponse().getNotFoundServerErrorResponse(GENERATE_BILL_NO_UN_BILLED_ORDER_FOUND_ERROR);
             }
 
             BillItem billItem = new BillItem();
             for (OrderItem orderItem : unBilledOrdersItemList) {
                 FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
                 if (foodMenuItem == null) {
-                    logger.error("foodMenuItem not found!!", "generateBill", RestaurantBillService.class.toString(), new RuntimeException("FoodMenuItem not found!!"), Map.of("orderItem", orderItem.toString()));
-                    throw new RuntimeException("foodMenuItem not found!!");
+                    logger.info(GENERATE_BILL_FOOD_MENU_ITEM_NOT_FOUND_ERROR, "generateBill", RestaurantBillService.class.toString(), Map.of("orderItem", orderItem.toString()));
+                    throw new RuntimeException(GENERATE_BILL_FOOD_MENU_ITEM_NOT_FOUND_ERROR);
                 }
                 billItem.setPayable(billItem.getPayable() + (foodMenuItem.getPrice() * orderItem.getQuantity()));
                 billItem.getOrderItemIds().add(orderItem.getId());
                 if (!restaurantOrderService.updateBillGenerationStatus(orderItem.getId())) {
-                    logger.info("updateBillGenerationStatus failed!!", "generateBill", RestaurantBillService.class.toString(), Map.of("orderItem", orderItem.toString()));
-                    throw new RuntimeException("");
+                    logger.info(GENERATE_UPDATE_BILL_GENERATION_STATUS_FAILED_ERROR, "generateBill", RestaurantBillService.class.toString(), Map.of("orderItem", orderItem.toString()));
+                    throw new RuntimeException(GENERATE_UPDATE_BILL_GENERATION_STATUS_FAILED_ERROR);
                 }
             }
 
-            if(!restaurantTableBookService.updateBillGenerateAt(generateBillRequest.getTableItemId())){
-                throw  new RuntimeException("updateBillGenerateAt failed!!");
+            if (!restaurantTableBookService.updateBillGenerateAt(generateBillRequest.getTableItemId())) {
+                throw new RuntimeException(GENERATE_UPDATE_BILL_GENERATED_AT_FAILED_ERROR);
             }
             billItem.setStatus(BillItemStatusEnum.BILL_GENERATED);
             billItem.setTableItemId(generateBillRequest.getTableItemId());
             billItemRepository.save(billItem);
 
             logger.info("generateBill successfully processed!!", "generateBill", RestaurantBillService.class.toString(), Map.of("generateBillRequest", generateBillRequest.toString()));
-            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "Bill generation has been queued!! you'll be notified once its been processed.");
+            return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), GENERATE_BILL_SUCCESS_RESPONSE);
         } catch (Exception e) {
             logger.error("Exception raised in generateBill!!", "generateBill", RestaurantBillService.class.toString(), e, Map.of("generateBillRequest", generateBillRequest.toString()));
-            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse(INTERNAL_SERVER_ERROR, e);
         }
 
     }
