@@ -22,7 +22,9 @@ import java.util.Optional;
 
 import static com.biplab.dholey.rmp.common.CustomError.CommonErrors.INTERNAL_SERVER_ERROR;
 import static com.biplab.dholey.rmp.common.CustomError.RestaurantBillGenerationServiceErrors.*;
+import static com.biplab.dholey.rmp.common.CustomSuccessMessage.RestaurantBillService.FETCH_ALL_BILLS_BY_TABLE_ID;
 import static com.biplab.dholey.rmp.common.CustomSuccessMessage.RestaurantBillService.GENERATE_BILL_SUCCESS_RESPONSE;
+import static com.biplab.dholey.rmp.common.constant.EnumToTextMap.BILL_STATUS_TO_TEXT_MAP;
 
 @Service
 public class RestaurantBillService {
@@ -132,10 +134,10 @@ public class RestaurantBillService {
                 data.getBills().add(bill);
             }
             logger.info("fetchAllBillsByTableId successfully processed!!", "fetchAllBillsByTableId", RestaurantBillService.class.toString(), Map.of("tableId", tableId.toString()));
-            return new RestaurantBillControllerFetchAllBillsByTableIdResponse().getSuccessResponse(data, "fetchAllBillsByTableId successfully processed.");
+            return new RestaurantBillControllerFetchAllBillsByTableIdResponse().getSuccessResponse(data, FETCH_ALL_BILLS_BY_TABLE_ID);
         } catch (Exception e) {
             logger.error("Exception raised in fetchAllBillsByTableId", "fetchAllBillsByTableId", RestaurantBillService.class.toString(), e, Map.of("tableId", tableId.toString()));
-            return new RestaurantBillControllerFetchAllBillsByTableIdResponse().getInternalServerErrorResponse("Internal server error.", e);
+            return new RestaurantBillControllerFetchAllBillsByTableIdResponse().getInternalServerErrorResponse(INTERNAL_SERVER_ERROR, e);
         }
 
     }
@@ -145,21 +147,18 @@ public class RestaurantBillService {
             logger.info("fetchBillDetailsById called!!", "fetchBillDetailsById", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
             Optional<BillItem> billItemOpt = billItemRepository.findById(billId);
             if (billItemOpt.isEmpty()) {
-                new RestaurantBillControllerFetchBillDetailsByBillIdResponse().getNotFoundServerErrorResponse("BillItem not found!!");
+                return new RestaurantBillControllerFetchBillDetailsByBillIdResponse().getNotFoundServerErrorResponse(FETCH_BILL_DETAILS_BY_ID_BILL_ITEM_NOT_FOUND);
             }
 
             RestaurantBillControllerFetchBillDetailsByBillIdResponse.RestaurantBillControllerFetchBillDetailsByBillIdResponseData data = new RestaurantBillControllerFetchBillDetailsByBillIdResponse.RestaurantBillControllerFetchBillDetailsByBillIdResponseData();
             BillItem billItem = billItemOpt.get();
             data.setTableNumber(billItem.getTableItemId());
             data.setTotalPayable(billItem.getPayable());
-            if (billItem.getStatus() == BillItemStatusEnum.PAYMENT_SUCCESS) {
-                data.setPaymentStatus("Payment Successfully Received");
-            } else if (billItem.getStatus() == BillItemStatusEnum.PAYMENT_FAILED) {
-                data.setPaymentStatus("Last Payment Failed.");
-            } else if (billItem.getStatus() == BillItemStatusEnum.PAYMENT_INITIATED) {
-                data.setPaymentStatus("Payment has been initiated, please make the payment");
+
+            if (BILL_STATUS_TO_TEXT_MAP.get(billItem.getStatus()) != null) {
+                data.setPaymentStatus(BILL_STATUS_TO_TEXT_MAP.get(billItem.getStatus()));
             } else {
-                data.setPaymentStatus("Payment hasn't been initiated yet");
+                throw new RuntimeException(FETCH_BILL_DETAILS_BY_ID_RECEIVED_UNKNOWN_BILL_STATUS);
             }
             data.setOrdersList(new ArrayList<>());
             List<RestaurantBillControllerFetchBillDetailsByBillIdResponse.RestaurantBillControllerFetchBillDetailsByBillIdResponseData.OrderDetails> orderDetailsListResponse = data.getOrdersList();
@@ -168,11 +167,11 @@ public class RestaurantBillService {
                 RestaurantBillControllerFetchBillDetailsByBillIdResponse.RestaurantBillControllerFetchBillDetailsByBillIdResponseData.OrderDetails orderDetails = new RestaurantBillControllerFetchBillDetailsByBillIdResponse.RestaurantBillControllerFetchBillDetailsByBillIdResponseData.OrderDetails();
                 orderDetails.setOrderId(orderItem.getId());
                 orderDetails.setTotalPrice(orderItem.getTotalPrice());
-
+                data.setTotalPayable(data.getTotalPayable() + orderItem.getTotalPrice());
                 FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(orderItem.getFoodMenuItemId());
                 if (foodMenuItem == null) {
                     logger.error("FoodMenuItem not found!!", "fetchBillDetailsById", RestaurantBillService.class.toString(), new RuntimeException("FoodMenuItem not found!!"), Map.of("billId", billId.toString(), "foodMenuItemId", orderItem.getFoodMenuItemId().toString()));
-                    throw new RuntimeException("FoodMenuItem not found!!");
+                    throw new RuntimeException(FETCH_BILL_DETAILS_BY_ID_FOOD_MENU_ITEM_NOT_FOUND);
                 }
                 orderDetails.setFoodItemName(foodMenuItem.getName());
                 orderDetailsListResponse.add(orderDetails);
@@ -182,7 +181,7 @@ public class RestaurantBillService {
             return new RestaurantBillControllerFetchBillDetailsByBillIdResponse().getSuccessResponse(data, "fetchBillDetailsById successfully processed.");
         } catch (Exception e) {
             logger.error("Exception raised in fetchBillDetailsById", "fetchBillDetailsById", RestaurantBillService.class.toString(), e, Map.of("billId", billId.toString()));
-            return new RestaurantBillControllerFetchBillDetailsByBillIdResponse().getInternalServerErrorResponse("Internal server error.", e);
+            return new RestaurantBillControllerFetchBillDetailsByBillIdResponse().getInternalServerErrorResponse(INTERNAL_SERVER_ERROR, e);
         }
 
     }

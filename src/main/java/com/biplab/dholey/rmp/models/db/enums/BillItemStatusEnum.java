@@ -1,11 +1,8 @@
 package com.biplab.dholey.rmp.models.db.enums;
 
 public enum BillItemStatusEnum {
-
-    BILL_GENERATION_QUEUED,
     BILL_GENERATED,
     PAYMENT_INITIATED,
     PAYMENT_SUCCESS,
     PAYMENT_FAILED,
-    BILL_PROCESSED
 }
