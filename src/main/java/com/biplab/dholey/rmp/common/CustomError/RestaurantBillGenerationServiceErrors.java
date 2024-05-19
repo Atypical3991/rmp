@@ -15,7 +15,7 @@ public class RestaurantBillGenerationServiceErrors {
 
     public static String FETCH_BILL_DETAILS_BY_ID_FOOD_MENU_ITEM_NOT_FOUND = "BillItem not found.";
 
-    public static String  FETCH_BILL_DETAILS_BY_ID_RECEIVED_UNKNOWN_BILL_STATUS = "Received unknown bill status";
+    public static String FETCH_BILL_DETAILS_BY_ID_RECEIVED_UNKNOWN_BILL_STATUS = "Received unknown bill status";
 
 }
 

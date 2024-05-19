@@ -22,8 +22,7 @@ import java.util.Optional;
 
 import static com.biplab.dholey.rmp.common.CustomError.CommonErrors.INTERNAL_SERVER_ERROR;
 import static com.biplab.dholey.rmp.common.CustomError.RestaurantBillGenerationServiceErrors.*;
-import static com.biplab.dholey.rmp.common.CustomSuccessMessage.RestaurantBillService.FETCH_ALL_BILLS_BY_TABLE_ID;
-import static com.biplab.dholey.rmp.common.CustomSuccessMessage.RestaurantBillService.GENERATE_BILL_SUCCESS_RESPONSE;
+import static com.biplab.dholey.rmp.common.CustomSuccessMessage.RestaurantBillService.*;
 import static com.biplab.dholey.rmp.common.constant.EnumToTextMap.BILL_STATUS_TO_TEXT_MAP;
 
 @Service
@@ -178,7 +177,7 @@ public class RestaurantBillService {
             }
 
             logger.info("fetchBillDetailsById successfully processed!!", "fetchBillDetailsById", RestaurantBillService.class.toString(), Map.of("billId", billId.toString()));
-            return new RestaurantBillControllerFetchBillDetailsByBillIdResponse().getSuccessResponse(data, "fetchBillDetailsById successfully processed.");
+            return new RestaurantBillControllerFetchBillDetailsByBillIdResponse().getSuccessResponse(data, FETCH_BILL_DETAILS_BY_ID_SUCCESS_RESPONSE);
         } catch (Exception e) {
             logger.error("Exception raised in fetchBillDetailsById", "fetchBillDetailsById", RestaurantBillService.class.toString(), e, Map.of("billId", billId.toString()));
             return new RestaurantBillControllerFetchBillDetailsByBillIdResponse().getInternalServerErrorResponse(INTERNAL_SERVER_ERROR, e);

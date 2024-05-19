@@ -18,6 +18,11 @@ public class FoodMenuController {
     @Autowired
     RestaurantFoodMenuService restaurantFoodMenuService;
 
+    @GetMapping("/hello")
+    public String hello() {
+        return "hello";
+    }
+
     @GetMapping("/fetch-food-menu")
     public ResponseEntity<FoodMenuControllerFetchFoodMenuResponse> fetchFoodMenu() {
         return ResponseEntity.ok(restaurantFoodMenuService.fetchFoodMenuItem());

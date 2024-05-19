@@ -22,6 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
+import static com.biplab.dholey.rmp.common.CustomError.CommonErrors.INTERNAL_SERVER_ERROR;
+import static com.biplab.dholey.rmp.common.CustomError.RestaurantCartServiceErrors.*;
+import static com.biplab.dholey.rmp.common.CustomSuccessMessage.RestaurantCartService.ADD_FOOD_ITEM_INTO_CART_SUCCESS_RESPONSE;
+
 @Service
 public class RestaurantCartService {
 
@@ -83,17 +87,17 @@ public class RestaurantCartService {
             Long tableId = restaurantCartControllerAddItemRequest.getTableId();
             TableItem tableItem = restaurantTableService.fetchTableById(tableId);
             if (tableItem == null) {
-                logger.error("addFoodItemIntoCart called!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), new RuntimeException("Table not found!!"), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
-                throw new RuntimeException("Table not found!!");
+                logger.error("addFoodItemIntoCart called!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), new RuntimeException(ADD_FOOD_ITEM_INTO_CART_TABLE_NOT_FOUND_ERROR), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
+                throw new RuntimeException(ADD_FOOD_ITEM_INTO_CART_TABLE_NOT_FOUND_ERROR);
             }
             if (tableItem.getStatus() != TableItemStatusEnum.BOOKED) {
-                logger.info("Table not in booked state!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
-                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse("Table not in booked state.So, items can't be added.");
+                logger.error("Table not in booked state!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), new RuntimeException(ADD_FOOD_ITEM_INTO_CART_TABLE_NOT_IN_BOOKED_STATE_ERROR), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
+                return new BaseDBOperationsResponse().getNotAcceptableServerErrorResponse(ADD_FOOD_ITEM_INTO_CART_TABLE_NOT_IN_BOOKED_STATE_ERROR);
             }
             FoodMenuItem foodMenuItem = restaurantFoodMenuService.getFoodMenuItemById(restaurantCartControllerAddItemRequest.getFoodMenuItemId());
             if (foodMenuItem == null) {
-                logger.error("addFoodItemIntoCart called!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), new RuntimeException("FoodMenuItem not found!!"), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
-                throw new RuntimeException("FoodMenuItem not found!!");
+                logger.error("addFoodItemIntoCart called!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), new RuntimeException(ADD_FOOD_ITEM_INTO_CART_FOOD_MENU_ITEM_NOT_FOUND), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
+                throw new RuntimeException(ADD_FOOD_ITEM_INTO_CART_FOOD_MENU_ITEM_NOT_FOUND);
             }
 
             CartItem cartItem = cartItemRepository.findByTableIdAndStatus(tableId, CartItemStatusEnum.ACTIVE);
@@ -126,7 +130,7 @@ public class RestaurantCartService {
                 cartItem.getCartElementIds().add(cartElementItem.getId());
                 cartItemRepository.save(cartItem);
                 logger.info("addFoodItemIntoCart successfully processed!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
-                return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "addFoodItemIntoCart successfully processed!!");
+                return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), ADD_FOOD_ITEM_INTO_CART_SUCCESS_RESPONSE);
 
             } else {
                 CartElementItem cartElementItem = new CartElementItem();
@@ -138,12 +142,12 @@ public class RestaurantCartService {
                 cartItem.setTotalPrice(foodMenuItem.getPrice() * cartElementItem.getQuantity());
                 cartItemRepository.save(cartItem);
                 logger.info("addFoodItemIntoCart successfully processed!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
-                return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), "addFoodItemIntoCart successfully processed!!");
+                return new BaseDBOperationsResponse().getSuccessResponse(new BaseDBOperationsResponse.BaseDBOperationsResponseResponseData(), ADD_FOOD_ITEM_INTO_CART_SUCCESS_RESPONSE);
             }
 
         } catch (Exception e) {
             logger.error("addFoodItemIntoCart called!!", "addFoodItemIntoCart", RestaurantCartService.class.toString(), e, Map.of("restaurantCartControllerAddItemRequest", restaurantCartControllerAddItemRequest.toString()));
-            return new BaseDBOperationsResponse().getInternalServerErrorResponse("Internal server error", e);
+            return new BaseDBOperationsResponse().getInternalServerErrorResponse(INTERNAL_SERVER_ERROR, e);
 
         }
     }
