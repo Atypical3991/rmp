@@ -24,7 +24,7 @@ public class FoodMenuControllerModifyMenuItem {
     private String name;
 
     @NotNull(message = "description shouldn't be null.")
-    @Size(min = 20, max = 500, message = "Char length of description should be between 10 and 500.")
+    @Size(min = 10, max = 500, message = "Char length of description should be between 10 and 500.")
     @JsonProperty("description")
     private String description;
 }

@@ -18,11 +18,11 @@ public class RestaurantRecipeControllerModifyRecipeRequest {
     @JsonProperty("name")
     private String name;
     @NotBlank(message = "description shouldn't be blank.")
-    @Size(min = 20, max = 500, message = "Char length of description should be between 20 and 500.")
+    @Size(min = 10, max = 500, message = "Char length of description should be between 10 and 500.")
     @JsonProperty("description")
     private String description;
     @NotBlank(message = "instruction shouldn't be blank.")
-    @Size(min = 20, max = 5000, message = "Char length of instruction should be between 20 and 5000.")
+    @Size(min = 10, max = 5000, message = "Char length of instruction should be between 10 and 5000.")
     @JsonProperty("instruction")
     private String instruction;
     @Positive(message = "estimatedTimeInMinutes should bne greater than 0.")
